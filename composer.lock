@@ -1,0 +1,72 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "c8e7c5dc2f1e7196db601819545b1e45",
+    "packages": [
+        {
+            "name": "maalls/anim-gif",
+            "version": "v1.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/maalls/anim-gif.git",
+                "reference": "74863d15a29002bcba731f5235fb7dbe7d066837"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/maalls/anim-gif/zipball/74863d15a29002bcba731f5235fb7dbe7d066837",
+                "reference": "74863d15a29002bcba731f5235fb7dbe7d066837",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "GifCreator": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Clément Guillemain",
+                    "homepage": "http://clementguillemain.fr",
+                    "role": "Developer / Freelancer"
+                },
+                {
+                    "name": "Szabolcs Szász",
+                    "homepage": "http://github.com/lunakid",
+                    "role": "Developer / Freelancer"
+                }
+            ],
+            "description": "PHP class to create an animated GIF from multiple images",
+            "homepage": "https://github.com/maalls/anim-gif",
+            "keywords": [
+                "animated",
+                "creation",
+                "encode",
+                "gif",
+                "php"
+            ],
+            "support": {
+                "source": "https://github.com/maalls/anim-gif/tree/v1.4.1"
+            },
+            "time": "2023-05-13T08:10:12+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "plugin-api-version": "2.3.0"
+}

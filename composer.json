@@ -1,0 +1,11 @@
+{
+    
+    "require": {
+        "maalls/anim-gif": "^1.4" 
+    },
+    "autoload": {
+        "psr-4": {
+            "Maalls\\": "src"
+        }
+    }
+}
