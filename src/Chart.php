@@ -10,8 +10,17 @@ class Chart {
 
     public $x0;
     public $y0;
+    public $xMin;
     public $xMax;
+    public $yMin;
     public $yMax;
+    public $xRange;
+    public $yRange;
+    public $xRatio;
+    public $yRatio;
+
+    public $xStepCount;
+    public $yStepCount;
     public $color;
 
     public $axisColor;
@@ -20,10 +29,13 @@ class Chart {
 
     public $unit = 40;
 
-    public $timeUnit = 4; 
+    public $timeUnit = 16; 
+    public $framePerSecond = 24;
     public $stepCount;
 
     public $functions = [];
+
+    public $hexCache = [];
 
     public function __construct($width, $height) {
         
@@ -31,8 +43,7 @@ class Chart {
         $this->height = $height;
         $this->x0 = round($this->width/2);
         $this->y0 = round($height / 2);
-        $this->xMax = $width;
-        $this->yMax = 0;
+        $this->setRanges(-$width/2 / 10, $width/2 / 10, -$height/2 / 10, $height/2 / 10);
         $this->xStepCount = floor($width/2 / $this->unit);
         $this->yStepCount = floor($height / 2 / $this->unit);
 
@@ -69,13 +80,14 @@ class Chart {
         $dir = sys_get_temp_dir();
         $frames = [];
         $durations = [];
-        for($t = 0; $t < 100; $t++) {
+        $duration = round(100 / $this->framePerSecond);
+        for($t = 0; $t < 400; $t++) {
 
             $frame = $dir . '/' . $t . '.png';
             $this->draw($t / $this->timeUnit);
             imagepng($this->image, $frame);
             $frames[] = $frame;
-            $durations[] = 4;
+            $durations[] = $duration;
 
         }
 
@@ -86,8 +98,17 @@ class Chart {
     }
 
     public function setHexColor($hex) {
-        list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
-        $this->color = imagecolorallocate($this->image, $r, $g, $b);
+
+        if(isset($this->hexCache[$hex])) {
+            $this->color = $this->hexCache[$hex];
+        }
+        else {
+            list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
+            $this->color = imagecolorallocate($this->image, $r, $g, $b);
+            $this->hexCache[$hex] = $this->color;
+        }
+
+        
     }
 
     public function cos() {
@@ -96,30 +117,72 @@ class Chart {
         });
     }
 
+    public function setRanges($xMin, $xMax, $yMin, $yMax) {
+        $this->xMin = round($xMin);
+        $this->xMax = round($xMax);
+        $this->yMin = round($yMin);
+        $this->yMax = round($yMax);
+        $this->xRange = $this->xMax - $this->xMin;
+        $this->yRange = $this->yMax - $this->yMin;
+        $this->xRatio = $this->xRange / $this->width; 
+        $this->yRatio = $this->yRange / $this->height;
+
+    }
+
     public function png($file = null) {
 
         $this->draw(0);
         return imagepng($this->image, $file);
     }
 
+    public function paint($function) {
+
+       
+
+        
+        // ex: width is 100, range is 10
+        // when i is 0, x should be -5
+        // when i is 100, x should be 5;
+        
+
+        $this->new();
+      
+        for($i = 0; $i < $this->width; $i++) {
+            echo "$i" . PHP_EOL;
+            for($j = 0; $j < $this->height; $j++) {
+
+                $x = $this->xMin + $i * $xRatio;
+                $y = $this->yMax - $j * $yRatio;
+                //$x = $i - $this->x0;
+                //$y = $this->y0 - $j;
+                $hex = $function($x, $y);
+                $this->setHexColor($hex);
+                imagesetpixel($this->image, $i, $j, $this->color);
+                
+            
+            }
+            
+        }
+
+
+    }
+
+    public function save($file) {
+        return imagepng($this->image, $file);
+    }
+
+    public function new() {
+        $this->image = imagecreate($this->width, $this->height);
+        imagecolorallocate($this->image, 255, 255, 0);
+        $this->axisColor = imagecolorallocate($this->image, 0, 0, 255);
+        $this->color = imagecolorallocate($this->image, 0, 0, 0);
+    }
+
 
     public function draw($t = 0) {
 
-        $this->image = imagecreate($this->width, $this->height);
-        imagecolorallocate($this->image, 255, 255, 255);
-        $this->axisColor = imagecolorallocate($this->image, 0, 0, 255);
-        $this->color = imagecolorallocate($this->image, 0, 0, 0);
-
-        imageline($this->image, 0, $this->y0, $this->xMax, $this->y0, $this->axisColor);
-        imageline($this->image, $this->x0, 0, $this->x0, $this->height, $this->axisColor);
-
-        for($i = $this->x0 - ($this->xStepCount * $this->unit); $i < $this->width; $i += $this->unit) {
-            imageline($this->image, $i, $this->y0 - 10, $i, $this->y0 +10, $this->axisColor);
-        }
-
-        for($i = $this->y0 - ($this->yStepCount * $this->unit); $i < $this->height; $i += $this->unit) {
-            imageline($this->image, $this->x0 - 10, $i, $this->x0 + 10, $i, $this->axisColor);
-        }
+        $this->new();
+        $this->drawAxes();
 
 
         foreach($this->functions as $function) {
@@ -131,7 +194,9 @@ class Chart {
     
             for($i = 0; $i < $this->width; $i++) {
     
-                $this->pixel($i, $function[0](($i - $this->x0) / $this->unit, $t));
+                $x = $this->xMin - $i * $this->xRatio;
+
+                $this->pixel($i, $function[0]($x, $t));
     
             }
             if($function[1]) {
@@ -140,6 +205,28 @@ class Chart {
 
         }
 
+    }
+
+    public function drawAxes() {
+
+        $centerX = round($this->width/2);
+        $centerY = round($this->height / 2);
+        imageline($this->image, 0, $centerY, $this->width, $centerY, $this->axisColor);
+        imageline($this->image, $centerX, 0, $centerX, $this->height, $this->axisColor);
+
+        // length in pixel of a unit
+        $xUnitLength = floor($this->width / $this->xRange);
+        $yUnitLength = floor($this->height / $this->yRange);
+        // number of unit
+        
+        $tickSize = 5;
+        for($i = $centerX + $this->xMin * $xUnitLength; $i <= $this->width; $i += $xUnitLength) {
+            imageline($this->image, $i, $centerY - $tickSize, $i, $centerY +$tickSize, $this->axisColor);
+        }
+
+        for($i = $centerY + $this->yMin * $yUnitLength; $i <= $this->height; $i += $yUnitLength) {
+            imageline($this->image, $centerX - $tickSize, $i, $centerX + $tickSize, $i, $this->axisColor);
+        }
     }
 
 
