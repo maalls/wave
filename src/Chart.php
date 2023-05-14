@@ -151,8 +151,8 @@ class Chart {
             echo "$i" . PHP_EOL;
             for($j = 0; $j < $this->height; $j++) {
 
-                $x = $this->xMin + $i * $xRatio;
-                $y = $this->yMax - $j * $yRatio;
+                $x = $this->xMin + $i * $this->xRatio;
+                $y = $this->yMax - $j * $this->yRatio;
                 //$x = $i - $this->x0;
                 //$y = $this->y0 - $j;
                 $hex = $function($x, $y);

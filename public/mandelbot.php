@@ -3,10 +3,10 @@ require __DIR__ . '/../vendor/autoload.php';
 use \Maalls\Chart;
 use \Maalls\Complex;
 
-$width = 500;
-$height = 500;
+$width = 1000;
+$height = 1000;
 $chart = new Chart($width, $height);
-
+$chart->setRanges(-2,1,-1,1);
 $mandelbot = function($x, $y) {
 
     //$c = new Complex($x, $y);
@@ -31,8 +31,13 @@ $mandelbot = function($x, $y) {
         $reals[] = $v->real;
         $imaginaries[] = $v->imaginary;*/
 
-        $v[0] = $v[0]*$v[0] - $v[1]*$v[1] + $c[0];
+        $t = $v[0]*$v[0] - $v[1]*$v[1] + $c[0];
         $v[1] = 2*$v[0]*$v[1] + $c[1];
+        $v[0] = $t;
+        if($v[0]*$v[0] > 2 || $v[1] * $v[1] > 2) {
+            $cycle = false;
+            break;
+        }
 
         $index = array_search($v[0], $reals);
         if($index !== false && $imaginaries[$index] == $v[1]) {
@@ -46,6 +51,7 @@ $mandelbot = function($x, $y) {
 
 
     }
+    //echo "($x, $y) cycle $cycle" . PHP_EOL;
 
     if($cycle === false) {
         return '#000000';
