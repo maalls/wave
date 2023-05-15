@@ -2,15 +2,17 @@
 require __DIR__ . '/../vendor/autoload.php';
 use \Maalls\Chart;
 
-$width = 1000;
+$width = 600;
 $height = 600;
 $chart = new Chart($width, $height);
 $chart->setRanges(-5, 5, -5, 5);
+$chart->setUnit(100, 100);
+$chart->setCenter($width/2, $height/2);
 $k = 2 * pi();
 $w = 2;
 
 $chart->plot(function($x, $t) use($k, $w) {
-    return 3 *  cos($k * $x * sin($t/4));
+    return 1 *  cos($k * $x * sin($t/4));
 }, '#0000FF');
 //$file = __DIR__ . '/data/output.png';
 //$chart->png($file);

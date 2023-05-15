@@ -8,8 +8,9 @@ class Chart {
     public $height;
     public $image;
 
-    public $x0;
-    public $y0;
+
+    public $xUnit;
+    public $yUnit;
     public $xMin;
     public $xMax;
     public $yMin;
@@ -19,20 +20,17 @@ class Chart {
     public $xRatio;
     public $yRatio;
 
-    public $xStepCount;
-    public $yStepCount;
+    public $centerX;
+    public $centerY;
+
     public $color;
 
     public $axisColor;
-
-    public $pixelPerUnit = 20;
 
     public $unit = 40;
 
     public $timeUnit = 16; 
     public $framePerSecond = 24;
-    public $stepCount;
-
     public $functions = [];
 
     public $hexCache = [];
@@ -41,12 +39,9 @@ class Chart {
         
         $this->width = $width;
         $this->height = $height;
-        $this->x0 = round($this->width/2);
-        $this->y0 = round($height / 2);
+        $this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width/2 / 10, $width/2 / 10, -$height/2 / 10, $height/2 / 10);
-        $this->xStepCount = floor($width/2 / $this->unit);
-        $this->yStepCount = floor($height / 2 / $this->unit);
-
+        
         
         
 
@@ -64,7 +59,7 @@ class Chart {
 
     public function y($y) {
         
-        return round(($this->height/2 - $y*$this->unit));
+        return round(($this->centerY - $y * $this->yUnit));
     }
 
     public function plot($callback, $hex = null) {
@@ -117,6 +112,11 @@ class Chart {
         });
     }
 
+    public function setCenter($centerX, $centerY) {
+        $this->centerX = round($centerX);
+        $this->centerY = round($centerY);
+    }
+
     public function setRanges($xMin, $xMax, $yMin, $yMax) {
         $this->xMin = round($xMin);
         $this->xMax = round($xMax);
@@ -124,9 +124,24 @@ class Chart {
         $this->yMax = round($yMax);
         $this->xRange = $this->xMax - $this->xMin;
         $this->yRange = $this->yMax - $this->yMin;
-        $this->xRatio = $this->xRange / $this->width; 
-        $this->yRatio = $this->yRange / $this->height;
+        $this->xUnit = $this->width / $this->xRange;
+        $this->yUnit = $this->height / $this->yRange;
+        
+    }
 
+    public function setUnit($xUnit, $yUnit) {
+        $this->xUnit = $xUnit;
+        $this->yUnit = $yUnit;
+
+        $this->xRange = $this->width / $this->xUnit;
+        $this->yRange = $this->height / $this->yUnit;
+
+       $this->xMin = -floor($this->centerX / $this->xUnit);
+       $this->xMax = floor(($this->width - $this->centerX) / $this->xUnit);
+       $this->yMin = -floor($this->centerY / $this->yUnit);
+       $this->yMax = ($this->height - $this->centerY) / $this->yUnit;
+        //echo "unit: ($this->xUnit, $this->yUnit), range: ($this->xRange, $this->yRange)" . PHP_EOL;
+        //echo "minmax: ($this->xMin,$this->xMax), ($this->yMin,$this->yMax)" . PHP_EOL;
     }
 
     public function png($file = null) {
@@ -153,8 +168,6 @@ class Chart {
 
                 $x = $this->xMin + $i * $this->xRatio;
                 $y = $this->yMax - $j * $this->yRatio;
-                //$x = $i - $this->x0;
-                //$y = $this->y0 - $j;
                 $hex = $function($x, $y);
                 $this->setHexColor($hex);
                 imagesetpixel($this->image, $i, $j, $this->color);
@@ -194,7 +207,7 @@ class Chart {
     
             for($i = 0; $i < $this->width; $i++) {
     
-                $x = $this->xMin - $i * $this->xRatio;
+                $x = $this->xMin - $i / $this->xUnit;
 
                 $this->pixel($i, $function[0]($x, $t));
     
@@ -209,23 +222,17 @@ class Chart {
 
     public function drawAxes() {
 
-        $centerX = round($this->width/2);
-        $centerY = round($this->height / 2);
-        imageline($this->image, 0, $centerY, $this->width, $centerY, $this->axisColor);
-        imageline($this->image, $centerX, 0, $centerX, $this->height, $this->axisColor);
+        imageline($this->image, 0, $this->centerY, $this->width, $this->centerY, $this->axisColor);
+        imageline($this->image, $this->centerX, 0, $this->centerX, $this->height, $this->axisColor);
 
-        // length in pixel of a unit
-        $xUnitLength = floor($this->width / $this->xRange);
-        $yUnitLength = floor($this->height / $this->yRange);
-        // number of unit
         
         $tickSize = 5;
-        for($i = $centerX + $this->xMin * $xUnitLength; $i <= $this->width; $i += $xUnitLength) {
-            imageline($this->image, $i, $centerY - $tickSize, $i, $centerY +$tickSize, $this->axisColor);
+        for($i = $this->centerX + $this->xMin * $this->xUnit; $i <= $this->width; $i += $this->xUnit) {
+            imageline($this->image, $i, $this->centerY - $tickSize, $i, $this->centerY +$tickSize, $this->axisColor);
         }
 
-        for($i = $centerY + $this->yMin * $yUnitLength; $i <= $this->height; $i += $yUnitLength) {
-            imageline($this->image, $centerX - $tickSize, $i, $centerX + $tickSize, $i, $this->axisColor);
+        for($i = $this->centerY + $this->yMin * $this->yUnit; $i <= $this->height; $i += $this->yUnit) {
+            imageline($this->image, $this->centerX - $tickSize, $i, $this->centerX + $tickSize, $i, $this->axisColor);
         }
     }
 
