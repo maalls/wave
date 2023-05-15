@@ -3,10 +3,12 @@ require __DIR__ . '/../vendor/autoload.php';
 use \Maalls\Chart;
 use \Maalls\Complex;
 
-$width = 1000;
-$height = 1000;
+$width = 300;
+$height = 200;
 $chart = new Chart($width, $height);
-$chart->setRanges(-2,1,-1,1);
+$chart->setRanges(-2,1, -1,1);
+$chart->setCenter(200, $height/2);
+
 $mandelbot = function($x, $y) {
 
     //$c = new Complex($x, $y);
@@ -16,20 +18,8 @@ $mandelbot = function($x, $y) {
 
     $reals = [];
     $imaginaries = [];
-    $cycle = false;
+    $cycle = true;
     for($i = 0; $i < 1000; $i++) {
-
-        /*$v->square()->add($c);
-
-        $index = array_search($v->real, $reals);
-        if($index !== false && $imaginaries[$index] == $v->imaginary) {
-
-            $cycle = count($reals);
-            break;
-
-        }
-        $reals[] = $v->real;
-        $imaginaries[] = $v->imaginary;*/
 
         $t = $v[0]*$v[0] - $v[1]*$v[1] + $c[0];
         $v[1] = 2*$v[0]*$v[1] + $c[1];
@@ -64,20 +54,20 @@ $mandelbot = function($x, $y) {
 
 };
 
-$random = function($x, $y) {
-    return rand(0, 1) > 0 ? '#FF0000' : '#0000FF';
-};
-
-$chart->paint($mandelbot);
+$chart->add($mandelbot);
 $file = __DIR__ . '/data/mandelbrot.png';
-$chart->save($file);
+
+$chart->frameCount = 1000;
+$chart->framePerSecond = 10;
+
+$chart->draw($file);
 ?>
 <!DOCTYPE html>
 <html>
 <body>
 <style>
     img {
-        width: 400px;
+        
     }
     </style>
 <img src="/data/mandelbrot.png" />

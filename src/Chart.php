@@ -17,33 +17,49 @@ class Chart {
     public $yMax;
     public $xRange;
     public $yRange;
-    public $xRatio;
-    public $yRatio;
 
     public $centerX;
     public $centerY;
 
     public $color;
 
+    public $black;
+
+    public $background;
     public $axisColor;
 
     public $unit = 40;
 
     public $timeUnit = 16; 
+
+    public $frameCount = 400;
     public $framePerSecond = 24;
     public $functions = [];
 
     public $hexCache = [];
 
+    public $useTime = false;
+
+    public $showAxes = true;
+
+    public $printTime = false;
+
+    public $motions = [];
+
     public function __construct($width, $height) {
         
         $this->width = $width;
         $this->height = $height;
-        $this->setCenter(round($this->width/2), round($height / 2));
+        //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width/2 / 10, $width/2 / 10, -$height/2 / 10, $height/2 / 10);
         
+        $this->image = imagecreate($this->width, $this->height);
         
-        
+        $this->black = imagecolorallocate($this->image, 0,0,0);
+        $this->color = $this->black;
+        $this->background = imagecolorallocate($this->image, 255, 255, 255);
+        $this->axisColor = imagecolorallocate($this->image, 0, 0, 255);
+        $this->init();
 
     }
 
@@ -59,38 +75,230 @@ class Chart {
 
     public function y($y) {
         
-        return round(($this->centerY - $y * $this->yUnit));
+        return (int)number_format(($this->centerY - $y * $this->yUnit), 0, '','');
+    }
+
+    public function add($function, $hexColor = null) {
+        $f = new \ReflectionFunction($function);
+        $names = [];
+        foreach($f->getParameters() as $parameter) {
+
+            $names[] = $parameter->name;
+
+        }
+
+        switch($names) {
+            case ['x', 't'] :
+                $type = 'xt';
+                $this->useTime = true;
+                break;
+            case ['x']:
+                $type = 'x';
+                break;
+            case ['x', 'y']:
+                $type = 'xy';
+                break;
+            case ['x', 'y', 't']:
+                $type = 'xyt';
+                $this->useTime = true;
+                break;
+        }
+
+        $this->functions[] = [$function, $hexColor, $type];
     }
 
     public function plot($callback, $hex = null) {
 
-        $this->functions[] = [$callback, $hex];
+        $this->add($callback, $hex);
         
         
     }
 
-    public function gif($file) {
+    public function draw($file) {
 
         
         $dir = sys_get_temp_dir();
         $frames = [];
         $durations = [];
         $duration = round(100 / $this->framePerSecond);
-        for($t = 0; $t < 400; $t++) {
 
+        if(!$this->useTime) {
+            $frameCount = 1;
+        }
+        else {
+            $frameCount = $this->frameCount;
+        }
+
+        
+        $motion = null;
+        $lastFrame =  null;
+        $xMinStep = $xMaxStep = $yMinStep = $yMaxStep = 0;
+
+        for($t = 0; $t < $frameCount; $t++) {
+            echo "t$t";
             $frame = $dir . '/' . $t . '.png';
-            $this->draw($t / $this->timeUnit);
+
+            $this->init();
+
+            if($motion && $t > $lastFrame) {
+                echo "REMOVE";          
+               $motion = null;
+                
+            }
+            if($this->motions && !$motion) {
+               
+                $motion = array_shift($this->motions);
+                echo "[" . $motion[0] . "]";
+                switch($motion[0]) {
+                    case 'still':
+                        $lastFrame = $t + $this->framePerSecond * $motion[1] - 1;
+                        break;
+                    case "pan":
+                        $distanceX = $motion[1];
+                        $distanceY = $motion[2];
+                        $framePerDuration = $this->framePerSecond * $motion[3];
+                        $xMinStep = $xMaxStep = $distanceX / $framePerDuration;
+                        $yMinStep = $yMaxStep = $distanceY / $framePerDuration;
+                        $lastFrame = $t + $framePerDuration - 1;
+                        break;
+                    case "zoom":
+                        
+                        $targetRangeX = $this->xRange / $motion[3] - $this->xRange;
+                        $targetRangeY = $this->yRange / $motion[3] - $this->yRange;
+                        echo $this->xRange . ';'.$targetRangeX;
+                        $framePerDuration = $this->framePerSecond * $motion[4];
+                        $xMaxStep = $targetRangeX / $framePerDuration / 2;
+                        $yMaxStep = $targetRangeY / $framePerDuration / 2;
+                        $xMinStep = -$xMaxStep;
+                        $yMinStep = -$yMaxStep;
+                        $lastFrame = $t + $framePerDuration - 1;
+                        echo 'm' . $xMaxStep;
+                        
+                        
+                   
+                        break;
+
+                }
+                
+                
+            }
+
+            if($motion && $motion[0] != 'still') {
+                $this->setRanges($this->xMin + $xMinStep, $this->xMax + $xMaxStep, $this->yMin + $yMinStep, $this->yMax + $yMaxStep);
+
+            }
+            
+            $scaledT = $t / $this->framePerSecond;
+            foreach($this->functions as $function) {
+
+                switch($function[2]) {
+
+                    case 'x': // constant over time
+                    case 'xt':
+                        $this->drawX($function[0], $function[1], $scaledT);
+                        
+                        break;
+                    case 'xy':
+                    case 'xyt':
+                        $this->drawXY($function[0], $scaledT);
+                }
+
+            }
+            if($this->showAxes) {
+                $this->drawAxes();
+            }
+            
+            if($this->printTime) {
+                $time = round($t / $this->framePerSecond, 2);
+                $fontPath = __DIR__ . '/font/Helvetica.ttf';
+                $text = str_pad(number_format($time, 1), 3, " ", STR_PAD_LEFT) ." sec " . str_pad($t + 1, strlen($frameCount), ' ', STR_PAD_LEFT) . "/" . $frameCount;
+
+                if(true) {
+
+                    $text .= " d($this->width, $this->height)  c($this->centerX, $this->centerY) mm([" . round($this->xMin,2) . "," . round($this->xMax) . ',('. round($this->yMin) . ',' . round($this->yMax). ")] u(".round($this->xUnit,1).','.round($this->yUnit,1).") r(".round($this->xRange) .','.round($this->yRange).")";
+
+                }
+
+                $bbox = imagettfbbox(8, 0, $fontPath, $text);
+                
+                $textHeight = $bbox[0] - $bbox[7] + 2;
+                $textWidth = $bbox[2] - $bbox[0] + 2;
+                imagefilledrectangle($this->image, 0, $this->height - $textHeight - 2,$textWidth, $this->height, $this->background);
+                imagettftext($this->image, 8, 0, 0, $this->height - 2, $this->black, $fontPath, $text);
+            }
+            imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
             imagepng($this->image, $frame);
             $frames[] = $frame;
             $durations[] = $duration;
 
         }
+        
+              
+        if($this->useTime) {
 
-        $anim = new AnimGif();
-        $anim->create($frames, $durations);
-        $anim->save($file);
+            $anim = new AnimGif();
+            $anim->create($frames, $durations);
+            $anim->save($file);
+        }
+        else {
+
+            imagepng($this->image, $file);
+
+        }
         
     }
+
+    public function drawXY($function, $t) {
+      
+        for($i = 0; $i < $this->width; $i++) {
+      
+            for($j = 0; $j < $this->height; $j++) {
+
+      
+                $x = ($i - $this->centerX) / $this->xUnit;
+                $y = ($j - $this->centerY) / $this->yUnit;
+                $hex = $function($x, $y, $t);
+                $this->setHexColor($hex);
+                imagesetpixel($this->image, $i, $j, $this->color);
+                
+            
+            }
+            
+        }
+
+
+    }
+
+    public function drawX($function, $hex = null, $t = 0) {
+
+        
+        if($hex) {
+            $color = $this->color;
+            $this->setHexColor($hex);
+        }
+
+        for($i = 0; $i < $this->width; $i++) {
+
+            $x = $this->xMin + $i / $this->xUnit;
+
+            $result = $function($x, $t);
+            if(!is_array($result)) {
+                $result = [$result];
+            }   
+            foreach($result as $y) {
+                $this->pixel($i, $y);
+            } 
+            
+            
+
+        }
+        if($hex) {
+            $this->color = $color;
+        }
+    }
+
+
+
 
     public function setHexColor($hex) {
 
@@ -118,14 +326,19 @@ class Chart {
     }
 
     public function setRanges($xMin, $xMax, $yMin, $yMax) {
-        $this->xMin = round($xMin);
-        $this->xMax = round($xMax);
-        $this->yMin = round($yMin);
-        $this->yMax = round($yMax);
+        $this->xMin = $xMin;
+        $this->xMax = $xMax;
+        $this->yMin = $yMin;
+        $this->yMax = $yMax;
         $this->xRange = $this->xMax - $this->xMin;
         $this->yRange = $this->yMax - $this->yMin;
         $this->xUnit = $this->width / $this->xRange;
         $this->yUnit = $this->height / $this->yRange;
+
+      
+        $this->centerX = round(-$this->xMin * $this->xUnit);
+        $this->centerY = $this->height + round($this->yMin * $this->yUnit);
+        
         
     }
 
@@ -150,75 +363,23 @@ class Chart {
         return imagepng($this->image, $file);
     }
 
-    public function paint($function) {
-
-       
-
-        
-        // ex: width is 100, range is 10
-        // when i is 0, x should be -5
-        // when i is 100, x should be 5;
-        
-
-        $this->new();
-      
-        for($i = 0; $i < $this->width; $i++) {
-            echo "$i" . PHP_EOL;
-            for($j = 0; $j < $this->height; $j++) {
-
-                $x = $this->xMin + $i * $this->xRatio;
-                $y = $this->yMax - $j * $this->yRatio;
-                $hex = $function($x, $y);
-                $this->setHexColor($hex);
-                imagesetpixel($this->image, $i, $j, $this->color);
-                
-            
-            }
-            
-        }
-
-
-    }
+    
 
     public function save($file) {
         return imagepng($this->image, $file);
     }
 
-    public function new() {
-        $this->image = imagecreate($this->width, $this->height);
-        imagecolorallocate($this->image, 255, 255, 0);
-        $this->axisColor = imagecolorallocate($this->image, 0, 0, 255);
-        $this->color = imagecolorallocate($this->image, 0, 0, 0);
+    public function init() {
+        //echo "ff";
+        //$this->image = imagecreate($this->width, $this->height);
+        imagefill($this->image, 0,0, $this->background);
+        //imagecolorallocate($this->image, 255, 255, 0);
+        imagefilledrectangle($this->image, 0, 0, $this->width, $this->height, $this->background);
+                
     }
 
 
-    public function draw($t = 0) {
-
-        $this->new();
-        $this->drawAxes();
-
-
-        foreach($this->functions as $function) {
-
-            if($function[1]) {
-                $color = $this->color;
-                $this->setHexColor($function[1]);
-            }
     
-            for($i = 0; $i < $this->width; $i++) {
-    
-                $x = $this->xMin - $i / $this->xUnit;
-
-                $this->pixel($i, $function[0]($x, $t));
-    
-            }
-            if($function[1]) {
-                $this->color = $color;
-            }
-
-        }
-
-    }
 
     public function drawAxes() {
 
@@ -227,13 +388,39 @@ class Chart {
 
         
         $tickSize = 5;
-        for($i = $this->centerX + $this->xMin * $this->xUnit; $i <= $this->width; $i += $this->xUnit) {
-            imageline($this->image, $i, $this->centerY - $tickSize, $i, $this->centerY +$tickSize, $this->axisColor);
+        
+        for($i = $this->centerX - $this->xUnit * floor($this->centerX/$this->xUnit); $i <= $this->width; $i += $this->xUnit) {
+            imageline($this->image, round($i), $this->centerY - $tickSize, round($i), $this->centerY +$tickSize, $this->axisColor);
         }
+        
+    
+        for($i = $this->centerY + $this->yUnit * floor($this->centerY/$this->yUnit); $i >= 0; $i -= $this->yUnit) {
+            imageline($this->image, round($this->centerX - $tickSize), round($i), round($this->centerX + $tickSize), round($i), $this->axisColor);
+        }
+    }
 
-        for($i = $this->centerY + $this->yMin * $this->yUnit; $i <= $this->height; $i += $this->yUnit) {
-            imageline($this->image, $this->centerX - $tickSize, $i, $this->centerX + $tickSize, $i, $this->axisColor);
-        }
+    public function printParameters() {
+        echo "dimension: ($this->width, $this->height)" . PHP_EOL;
+        echo "center: ($this->centerX, $this->centerY), unit: ($this->xUnit, $this->yUnit)" . PHP_EOL;
+        echo "minmax: [($this->xMin, $this->xMax), ($this->yMin, $this->yMax)]" . PHP_EOL;
+        echo "range: ($this->xRange, $this->yRange)" . PHP_EOL;
+    }
+
+
+    public function pan($targetX, $targetY, $duration) {
+
+
+        $this->motions[] = ['pan', $targetX, $targetY, $duration];
+    }
+
+    public function zoom($targetX, $targetY, $level, $duration) {
+
+
+        $this->motions[] = ['zoom', $targetX, $targetY,  $level, $duration];
+    }
+
+    public function still($duration) {
+        $this->motions[] = ['still', $duration];
     }
 
 
