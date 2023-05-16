@@ -46,6 +46,8 @@ class Chart {
 
     public $motions = [];
 
+    public $logger;
+
     public function __construct($width, $height) {
         
         $this->width = $width;
@@ -135,20 +137,20 @@ class Chart {
         $xMinStep = $xMaxStep = $yMinStep = $yMaxStep = 0;
 
         for($t = 0; $t < $frameCount; $t++) {
-            echo "t$t";
+            //echo "t$t";
             $frame = $dir . '/' . $t . '.png';
 
             $this->init();
 
             if($motion && $t > $lastFrame) {
-                echo "REMOVE";          
+                //echo "REMOVE";          
                $motion = null;
                 
             }
             if($this->motions && !$motion) {
                
                 $motion = array_shift($this->motions);
-                echo "[" . $motion[0] . "]";
+                //echo "[" . $motion[0] . "]";
                 switch($motion[0]) {
                     case 'still':
                         $lastFrame = $t + $this->framePerSecond * $motion[1] - 1;
@@ -162,15 +164,22 @@ class Chart {
                         $lastFrame = $t + $framePerDuration - 1;
                         break;
                     case "zoom":
-                        
-                        $targetRangeX = $this->xRange / $motion[3] - $this->xRange;
-                        $targetRangeY = $this->yRange / $motion[3] - $this->yRange;
-                        echo $this->xRange . ';'.$targetRangeX;
+
                         $framePerDuration = $this->framePerSecond * $motion[4];
-                        $xMaxStep = $targetRangeX / $framePerDuration / 2;
-                        $yMaxStep = $targetRangeY / $framePerDuration / 2;
-                        $xMinStep = -$xMaxStep;
-                        $yMinStep = -$yMaxStep;
+                        $distanceX = $motion[1] * ($motion[3] >= 1 ? $motion[3] : 1/$motion[3]);
+                        $distanceY = $motion[2] * ($motion[3] >= 1 ? $motion[3] : 1/$motion[3]);
+                        $xMinStep = $xMaxStep = $distanceX / $framePerDuration;
+                        $yMinStep = $yMaxStep = $distanceY / $framePerDuration;
+
+                        $targetRangeX = $this->xRange / $motion[3] - $this->xRange - $distanceX;
+                        $targetRangeY = $this->yRange / $motion[3] - $this->yRange - $distanceY;
+
+                        echo $this->xRange . ';'.$targetRangeX;
+                        
+                        $xMaxStep += $targetRangeX / $framePerDuration / 2;
+                        $yMaxStep += $targetRangeY / $framePerDuration / 2;
+                        $xMinStep += -$xMaxStep;
+                        $yMinStep += -$yMaxStep;
                         $lastFrame = $t + $framePerDuration - 1;
                         echo 'm' . $xMaxStep;
                         
@@ -215,7 +224,7 @@ class Chart {
 
                 if(true) {
 
-                    $text .= " d($this->width, $this->height)  c($this->centerX, $this->centerY) mm([" . round($this->xMin,2) . "," . round($this->xMax) . ',('. round($this->yMin) . ',' . round($this->yMax). ")] u(".round($this->xUnit,1).','.round($this->yUnit,1).") r(".round($this->xRange) .','.round($this->yRange).")";
+                    $text .= " d($this->width, $this->height)  c($this->centerX, $this->centerY) mm[(" . round($this->xMin,1) . "," . round($this->xMax,1) . '),('. round($this->yMin,1) . ',' . round($this->yMax,1). ")] u(".round($this->xUnit,1).','.round($this->yUnit,1).") r(".round($this->xRange) .','.round($this->yRange).")";
 
                 }
 
@@ -421,6 +430,12 @@ class Chart {
 
     public function still($duration) {
         $this->motions[] = ['still', $duration];
+    }
+
+    public function log($msg, $level = 'info') {
+        if($this->logger) {
+            $this->logger->log($msg, $level);
+        }
     }
 
 
