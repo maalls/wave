@@ -1,6 +1,6 @@
 <?php
 
-namespace Maalls;
+namespace Maalls\Chart;
 use GifCreator\AnimGif;
 class Chart {
 
@@ -32,7 +32,7 @@ class Chart {
 
     public $timeUnit = 16; 
 
-    public $frameCount = 400;
+    public $frameCount = 1;
     public $framePerSecond = 24;
     public $functions = [];
 
@@ -81,13 +81,24 @@ class Chart {
     }
 
     public function add($function, $hexColor = null) {
-        $f = new \ReflectionFunction($function);
-        $names = [];
-        foreach($f->getParameters() as $parameter) {
 
+        $names = [];
+        
+        if(is_a($function, \Closure::class)) {
+            $f = new \ReflectionFunction($function);
+        }
+        else {
+            
+            $f = new \ReflectionMethod(get_class($function), "map");
+            
+        }
+
+        foreach($f->getParameters() as $parameter) {
+    
             $names[] = $parameter->name;
 
         }
+       
 
         switch($names) {
             case ['x', 't'] :
@@ -124,21 +135,20 @@ class Chart {
         $durations = [];
         $duration = round(100 / $this->framePerSecond);
 
-        if(!$this->useTime) {
+        if(!$this->useTime && !$this->motions) {
             $frameCount = 1;
         }
         else {
             $frameCount = $this->frameCount;
         }
 
-        
         $motion = null;
         $lastFrame =  null;
         $xMinStep = $xMaxStep = $yMinStep = $yMaxStep = 0;
 
         for($t = 0; $t < $frameCount; $t++) {
-            //echo "t$t";
-            $frame = $dir . '/' . $t . '.png';
+         
+            $frame = $dir . '/' . ($t+1) . '.png';
 
             $this->init();
 
@@ -163,6 +173,19 @@ class Chart {
                         $yMinStep = $yMaxStep = $distanceY / $framePerDuration;
                         $lastFrame = $t + $framePerDuration - 1;
                         break;
+                    case 'zoom2':
+
+                        $framePerDuration = $this->framePerSecond * $motion[5];
+                        $xMinStep = ( $motion[1] - $this->xMin) / $framePerDuration;
+                        $xMaxStep = ($motion[2] - $this->xMax) / $framePerDuration;
+                        $yMinStep = ($motion[3] - $this->yMin) / $framePerDuration;
+                        $yMaxStep = ($motion[4] - $this->yMax) / $framePerDuration;
+                        $lastFrame = $t + $framePerDuration - 1;
+                        
+                        break;
+                        
+
+
                     case "zoom":
 
                         $framePerDuration = $this->framePerSecond * $motion[4];
@@ -174,14 +197,12 @@ class Chart {
                         $targetRangeX = $this->xRange / $motion[3] - $this->xRange - $distanceX;
                         $targetRangeY = $this->yRange / $motion[3] - $this->yRange - $distanceY;
 
-                        echo $this->xRange . ';'.$targetRangeX;
-                        
                         $xMaxStep += $targetRangeX / $framePerDuration / 2;
                         $yMaxStep += $targetRangeY / $framePerDuration / 2;
                         $xMinStep += -$xMaxStep;
                         $yMinStep += -$yMaxStep;
                         $lastFrame = $t + $framePerDuration - 1;
-                        echo 'm' . $xMaxStep;
+                     
                         
                         
                    
@@ -200,6 +221,9 @@ class Chart {
             $scaledT = $t / $this->framePerSecond;
             foreach($this->functions as $function) {
 
+                if(method_exists($function[0], 'init')) {
+                    $function[0]->init($this);
+                }
                 switch($function[2]) {
 
                     case 'x': // constant over time
@@ -234,8 +258,9 @@ class Chart {
                 $textWidth = $bbox[2] - $bbox[0] + 2;
                 imagefilledrectangle($this->image, 0, $this->height - $textHeight - 2,$textWidth, $this->height, $this->background);
                 imagettftext($this->image, 8, 0, 0, $this->height - 2, $this->black, $fontPath, $text);
+                
             }
-            imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
+            //imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
             imagepng($this->image, $frame);
             $frames[] = $frame;
             $durations[] = $duration;
@@ -243,30 +268,43 @@ class Chart {
         }
         
               
-        if($this->useTime) {
+        if($frameCount > 1) {
 
-            $anim = new AnimGif();
-            $anim->create($frames, $durations);
-            $anim->save($file);
+            if(!is_dir($file)) {
+                $anim = new AnimGif();
+                $anim->create($frames, $durations);
+                $anim->save($file);
+            }
+            else {
+                foreach($frames as $frame) {
+                    rename($frame, $file . '/' . basename($frame));
+                }
+            }
+            
         }
         else {
-
-            imagepng($this->image, $file);
+            if(!is_dir($file)) {
+                imagepng($this->image, $file);
+            }
+            else {
+                imagepng($this->image, $file . '/1.png');
+            }
+            
 
         }
         
     }
 
     public function drawXY($function, $t) {
-      
+        //echo "$this->centerX, $this->centerY" . PHP_EOL;
         for($i = 0; $i < $this->width; $i++) {
       
             for($j = 0; $j < $this->height; $j++) {
 
       
                 $x = ($i - $this->centerX) / $this->xUnit;
-                $y = ($j - $this->centerY) / $this->yUnit;
-                $hex = $function($x, $y, $t);
+                $y = ($this->centerY - $j) / $this->yUnit;
+                $hex = $this->executeXY($function, $x, $y, $t);
                 $this->setHexColor($hex);
                 imagesetpixel($this->image, $i, $j, $this->color);
                 
@@ -290,7 +328,7 @@ class Chart {
 
             $x = $this->xMin + $i / $this->xUnit;
 
-            $result = $function($x, $t);
+            $result = $this->executeX($function, $x, $t);
             if(!is_array($result)) {
                 $result = [$result];
             }   
@@ -303,6 +341,26 @@ class Chart {
         }
         if($hex) {
             $this->color = $color;
+        }
+    }
+
+    public function executeXY($function, $x, $y, $t) {
+        if(is_a($function, \Closure::class)) {
+            return $function($x, $y);
+        }
+        else {
+            
+            return $function->map($x, $y, $t);
+        }
+    }
+
+    public function executeX($function, $x, $t) {
+        if(is_a($function, \Closure::class)) {
+            return $function($x, $t);
+        }
+        else {
+            
+            return $function->map($x, $t);
         }
     }
 
@@ -426,6 +484,12 @@ class Chart {
 
 
         $this->motions[] = ['zoom', $targetX, $targetY,  $level, $duration];
+    }
+
+    public function zoom2($minX, $maxX, $minY, $maxY, $duration) {
+
+
+        $this->motions[] = ['zoom2', $minX, $maxX, $minY, $maxY, $duration];
     }
 
     public function still($duration) {
