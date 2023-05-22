@@ -67,9 +67,14 @@ class Chart
 
     public function __construct($width, $height)
     {
-
+        
         $this->width = $width;
         $this->height = $height;
+        $this->axes = [
+            new Axis(-$width / 2, $width / 2, 0, $width, "#00FF00"),
+            new Axis(-$height / 2, $height / 2, -pi()/2, $height, "#FF00FF"),
+            new Axis(-$height / 2, $height / 2, pi()/4, $height, "#00FFFF"),
+        ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2 / 10, $width / 2 / 10, -$height / 2 / 10, $height / 2 / 10);
 
@@ -83,11 +88,9 @@ class Chart
         $this->angle = 0;
         $this->init();
 
-        $this->axes = [
-            new Axis(-$width / 2, $width / 2, 0, $width, "#00FF00"),
-            new Axis(-$height / 2, $height / 2, -pi()/2, $height, "#FF00FF"),
-            new Axis(-$height / 2, $height / 2, pi()/4, $height, "#00FFFF"),
-        ];
+        
+
+        
 
     }
 
@@ -458,13 +461,6 @@ class Chart
 
     }
 
-    public function cos()
-    {
-        return $this->plot(function ($a) {
-            return 2 * cos($a);
-        });
-    }
-
     public function setCenter($centerX, $centerY)
     {
         $this->centerX = round($centerX);
@@ -486,6 +482,8 @@ class Chart
         $this->centerX = round(-$this->xMin * $this->xUnit);
         $this->centerY = $this->height + round($this->yMin * $this->yUnit);
 
+        $this->axes[0]->setRange($xMin, $xMax);
+        $this->axes[1]->setRange($yMin, $yMax);
 
     }
 
@@ -542,9 +540,7 @@ class Chart
         foreach($this->axes as $k => $axis) {
 
             $start = $axis->pixel($axis->min);
-            
             $end = $axis->pixel($axis->max);
-            
             $this->setHexColor($axis->color);
             imageline($this->image, $start[0] + $this->centerX, $start[1] + $this->centerY, $this->centerX + $end[0], $end[1] + $this->centerY, $this->color);
         
@@ -564,7 +560,7 @@ class Chart
             
             imageline($this->image, $ia, $ya - $tickSize, $ia, $ya + $tickSize, $this->axisColor);
         }
-        
+        */
 
         for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
             imageline($this->image, round($i), $this->centerY - $tickSize, round($i), $this->centerY + $tickSize, $this->axisColor);
@@ -573,7 +569,7 @@ class Chart
 
         for ($i = $this->centerY + $this->yUnit * floor($this->centerY / $this->yUnit); $i >= 0; $i -= $this->yUnit) {
             imageline($this->image, round($this->centerX - $tickSize), round($i), round($this->centerX + $tickSize), round($i), $this->axisColor);
-        }*/
+        }
     }
 
     public function printParameters()

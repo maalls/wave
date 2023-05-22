@@ -20,15 +20,22 @@ class Axis {
         if($min > $max) {
             throw new \Exception("$min has to be less than $max");
         }
-        $this->min = $min;
-        $this->max = $max;
+        
         $this->angle = $angle;
         $this->size = $size;
         $this->color = $color;
 
+        $this->setRange($min, $max);
+        
+    }
+
+    public function setRange($min, $max) {
+
+        $this->min = $min;
+        $this->max = $max;
         $this->unit = $this->size / ($this->max - $this->min);
         $this->center = round(-$this->min * $this->unit);
-        
+
     }
 
     public function getUnit() {
