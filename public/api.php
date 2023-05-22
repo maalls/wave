@@ -4,21 +4,21 @@ require __DIR__ . '/../vendor/autoload.php';
 use \Maalls\Chart\Chart;
 use \Maalls\Chart\Algorithm\Mandelbrot;
 use \Maalls\Chart\Algorithm\Xtmap;
+use \Maalls\Chart\Algorithm\Cos;
+$width = getP('width', 200);
+$height = getP('height', 200);
 
-$width = $_GET['width'];
-$height = $_GET['height'];
-
-$xMin = $_GET['xMin'];
-$xMax = $_GET['xMax'];
-$yMin = $_GET['yMin'];
-$yMax = $_GET['yMax'];
+$xMin = getP('xMin', -2);
+$xMax = getP('xMax', 2);
+$yMin = getP('yMin', -2);
+$yMax = getP('yMax', 2);
 
 $chart = new Chart($width, $height);
 $chart->setRanges($xMin, $xMax, $yMin, $yMax);
 //$chart->setCenter(200, $height/2);
 //$chart->printTime = true;
 
-$algo = new Mandelbrot();
+$algo = new Cos();
 //$algo = new Xtmap();
 $chart->add($algo);
 
@@ -36,8 +36,13 @@ $reflect = new ReflectionClass($algo);
 $relativeDir = "data/" . $reflect->getShortName() . "-" . sha1(implode('_', $fParams));
 $dir = __DIR__ . "/" . $relativeDir;
 
-if(!file_exists($dir)) {
-    mkdir($dir);
+if(true || !file_exists($dir)) {
+    @mkdir($dir);
+    //$chart->multiThread = false;
+    /*$chart->frameCount = 200;
+    $chart->framePerSecond = 4;
+    $chart->rotate(2*pi());
+    */
     $chart->draw($dir);
 }
 
@@ -59,3 +64,7 @@ $info = [
 
 $data = ['status' => 'ok', 'dir' => $relativeDir, 'info' => $info];
 echo json_encode($data);
+
+function getP($name, $default = null) {
+    return isset($_GET[$name]) ? $_GET[$name] : $default;
+}

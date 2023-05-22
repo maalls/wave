@@ -1,7 +1,7 @@
 <?php
 
 namespace Maalls\Chart\Algorithm;
-use Maalls\Chart\Algorithm;
+use Maalls\Chart\Tool\Color;
 class Mandelbrot {
     public function map($x, $y)
     {
@@ -35,12 +35,16 @@ class Mandelbrot {
 
 
         }
-        //echo "($x, $y) cycle $cycle" . PHP_EOL;
+        //echo "($x, $y) cycle " . $i . PHP_EOL;
 
         if ($cycle === false) {
             return '#000000';
         } else {
-            return '#FFFFFF';
+            if($i < 70) return '#FF0000';
+            else {
+                return '#FFFFFF';
+            }
+            //return '#FFFFFF';
         }
     }
 

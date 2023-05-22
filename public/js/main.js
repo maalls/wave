@@ -40,24 +40,20 @@ function requestImage(parameters, callback) {
             let loadCount = 0;
             function onload(e) {
                 loadCount++;
-                console.log('ok', loadCount);
+                console.log('ok', loadCount, rsp.info.frames);
                 if (loadCount == rsp.info.frames) {
-
 
                     const totalFrames = rsp.info.frames;
                     const animationDuration = 3000;
                     const timePerFrame = animationDuration / totalFrames;
-                    let timeWhenLastUpdate;
+                    let timeWhenLastUpdate = 0;
                     let timeFromLastUpdate;
                     let frameNumber = 1;
 
                     function step(startTime) {
-                        
-                        if (!timeWhenLastUpdate) timeWhenLastUpdate = startTime;
-
                         timeFromLastUpdate = startTime - timeWhenLastUpdate;
-
-                        if (timeFromLastUpdate > timePerFrame) {
+                        
+                        if (timeWhenLastUpdate == 0 || timeFromLastUpdate > timePerFrame) {
                             console.log("animate");
                             mainImage.src = images[frameNumber - 1].src;
                             timeWhenLastUpdate = startTime;
@@ -65,6 +61,7 @@ function requestImage(parameters, callback) {
                             if (frameNumber >= totalFrames) {
                                 console.log("end of loop");
                                 frameNumber = 1;
+                                requestAnimationFrame(step);
                                 
                             } else {
                                 frameNumber = frameNumber + 1;
@@ -94,9 +91,6 @@ function requestImage(parameters, callback) {
 
             //mainImage.src = '/' + rsp.dir + "/1.png";
             dataset = rsp.info;
-
-            
-
             parameters.xMin = rsp.info.xMin;
             parameters.xMax = rsp.info.xMax;
             parameters.yMin = rsp.info.yMin;
