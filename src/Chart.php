@@ -6,6 +6,7 @@ use GifCreator\AnimGif;
 use Maalls\Chart\Algorithm\Surjectif;
 use Maalls\Chart\Tool\MultiThread;
 use Maalls\Chart\Axis;
+use Maalls\Chart\Algorithm\Func;
 
 class Chart
 {
@@ -67,13 +68,13 @@ class Chart
 
     public function __construct($width, $height)
     {
-        
+
         $this->width = $width;
         $this->height = $height;
         $this->axes = [
-            new Axis(-$width / 2, $width / 2, 0, $width, "#00FF00"),
-            new Axis(-$height / 2, $height / 2, -pi()/2, $height, "#FF00FF"),
-            new Axis(-$height / 2, $height / 2, pi()/4, $height, "#00FFFF"),
+            new Axis(-$width / 2, $width / 2, -0.2, $width, "#00FF00"),
+            new Axis(-$height / 2, $height / 2, -pi() / 2, $height, "#FF00FF"),
+            new Axis(-$height / 2, $height / 2, 0.2, $height, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2 / 10, $width / 2 / 10, -$height / 2 / 10, $height / 2 / 10);
@@ -88,9 +89,9 @@ class Chart
         $this->angle = 0;
         $this->init();
 
-        
 
-        
+
+
 
     }
 
@@ -144,17 +145,16 @@ class Chart
 
     public function draw($file)
     {
-   
-        if(is_dir($file)) {
+
+        if (is_dir($file)) {
             $this->dir = $file;
-            if(!file_exists($this->dir)) {
+            if (!file_exists($this->dir)) {
                 mkdir($this->dir);
             }
-        }
-        else {
+        } else {
             $this->dir = sys_get_temp_dir();
         }
-        
+
         $frames = [];
         $durations = [];
         $duration = round(100 / $this->framePerSecond);
@@ -231,7 +231,7 @@ class Chart
                             $duration = $motion[2] ? $motion[2] : $this->frameCount / $this->framePerSecond;
                             $framePerDuration = $this->framePerSecond * $duration;
                             $angle = $motion[1];
-                            $angleStep = $angle/$framePerDuration;
+                            $angleStep = $angle / $framePerDuration;
                             $lastFrame = $t + $framePerDuration - 1;
                             break;
 
@@ -239,17 +239,16 @@ class Chart
                 }
 
                 if ($motion && $motion[0] != 'still') {
-                    if($t > 0) {
-                        $prev = [$this->transforms[$t-1][0], $this->transforms[$t-1][1], $this->transforms[$t-1][2], $this->transforms[$t-1][3], $this->transforms[$t-1][4]];
-                    }
-                    else {
-                        $prev = [0,0,0,0, 0];
+                    if ($t > 0) {
+                        $prev = [$this->transforms[$t - 1][0], $this->transforms[$t - 1][1], $this->transforms[$t - 1][2], $this->transforms[$t - 1][3], $this->transforms[$t - 1][4]];
+                    } else {
+                        $prev = [0, 0, 0, 0, 0];
                     }
                     $this->transforms[$t] = [$xMinStep + $prev[0], $xMaxStep + $prev[1], $yMinStep + $prev[2], $yMaxStep + $prev[3], $prev[4] + $angleStep];
                 } else {
-                    $this->transforms[$t] = [0,0,0,0, 0];
+                    $this->transforms[$t] = [0, 0, 0, 0, 0];
                 }
-                
+
 
             }
 
@@ -257,16 +256,15 @@ class Chart
         }
         $this->startRanges = [$this->xMin, $this->xMax, $this->yMin, $this->yMax];
 
-        if($this->multiThread) {
+        if ($this->multiThread) {
             $multiThread = new MultiThread();
             $multiThread->iterate([$this, "drawT"], 0, $frameCount);
-            
-        }
-        else {
+
+        } else {
             for ($t = 0; $t < $frameCount; $t++) {
 
                 $frame = $this->drawT($t);
-            
+
             }
         }
 
@@ -278,9 +276,9 @@ class Chart
                 //$anim = new AnimGif();
                 //$anim->create($frames, $durations);
                 //$anim->save($file);
-            } 
+            }
 
-        } 
+        }
 
     }
 
@@ -393,28 +391,50 @@ class Chart
 
         }*/
 
-        for($x = $this->xMin; $x < $this->xMax; $x+= 1/$this->xUnit) {
+        for ($x = $this->xMin; $x < $this->xMax; $x += 1 / $this->xUnit) {
 
-            
+
             $result = $this->executeX($function, $x, $t);
 
             if (!is_array($result)) {
                 $result = [$result];
             }
 
-            list($xx, $xy) = $this->axes[0]->transform($x);
-            foreach ($result as $k => $y) {
-                //echo $x . ' :' . $this->xToP($x) . ' ';
-                if(is_a($function, Surjectif::class)) {
-                    $axeKey = 1;
+            if (is_a($function, Func::class)) {
+
+                list($xx, $xy) = $this->axes[0]->transform($x);
+                list($yx, $yy) = [0,0];
+                foreach($result as $k => $y) {
+
+                    list($lx, $ly) = $this->axes[$k+1]->transform($y);
+                    $yx +=$lx;
+                    $yy +=$ly;
+                    
                 }
-                else {
-                    $axeKey = $k + 1;
-                }
-                list($yx, $yy) = $this->axes[$axeKey]->transform($y);
-                $this->setHexColor($this->axes[$axeKey]->color);
+                //echo "$yx, $yy";
+                //exit;
+                $this->setHexColor($this->axes[$k+1]->color);
                 imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
-                
+
+
+            } else {
+
+                list($xx, $xy) = $this->axes[0]->transform($x);
+
+                if (is_a($function, Surjectif::class))
+
+                    foreach ($result as $k => $y) {
+                        //echo $x . ' :' . $this->xToP($x) . ' ';
+                        if (is_a($function, Surjectif::class)) {
+                            $axeKey = 1;
+                        } else {
+                            $axeKey = $k + 1;
+                        }
+                        list($yx, $yy) = $this->axes[$axeKey]->transform($y);
+                        $this->setHexColor($this->axes[$axeKey]->color);
+                        imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
+
+                    }
             }
 
         }
@@ -477,7 +497,7 @@ class Chart
         $this->yRange = $this->yMax - $this->yMin;
         $this->xUnit = $this->width / $this->xRange;
         $this->yUnit = $this->height / $this->yRange;
-        
+
 
         $this->centerX = round(-$this->xMin * $this->xUnit);
         $this->centerY = $this->height + round($this->yMin * $this->yUnit);
@@ -537,13 +557,13 @@ class Chart
         $angle = $this->angle;
 
 
-        foreach($this->axes as $k => $axis) {
+        foreach ($this->axes as $k => $axis) {
 
             $start = $axis->pixel($axis->min);
             $end = $axis->pixel($axis->max);
             $this->setHexColor($axis->color);
             imageline($this->image, $start[0] + $this->centerX, $start[1] + $this->centerY, $this->centerX + $end[0], $end[1] + $this->centerY, $this->color);
-        
+
 
         }
 
@@ -602,7 +622,8 @@ class Chart
         $this->motions[] = ['zoom2', $minX, $maxX, $minY, $maxY, $duration];
     }
 
-    public function rotate($angle, $duration = null) {
+    public function rotate($angle, $duration = null)
+    {
 
         $this->motions[] = ['rotate', $angle, $duration];
 
@@ -620,23 +641,27 @@ class Chart
         }
     }
 
-    public function xToP($x) {
+    public function xToP($x)
+    {
 
-        return ($x * $this->xUnit + $this->centerX) ;
+        return ($x * $this->xUnit + $this->centerX);
 
     }
 
-    public function yToP($y) {
-        return ($this->centerY - $y*$this->yUnit);
+    public function yToP($y)
+    {
+        return ($this->centerY - $y * $this->yUnit);
     }
 
-    public function pToX($p) {
+    public function pToX($p)
+    {
 
         return ($p - $this->centerX) / $this->xUnit;
 
     }
 
-    public function pToY($p) {
+    public function pToY($p)
+    {
         return ($this->centerY - $p) / $this->yUnit;
     }
 

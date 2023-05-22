@@ -1,11 +1,11 @@
 <?php
 
 namespace Maalls\Chart\Algorithm;
-use Maalls\Chart\Tool\Color;
-class Spiral {
+
+class Spiral implements Func {
     public function map($x)
     {
-        return [cos($x*2*pi())];
+        return [cos($x*2*pi()), sin($x*2*pi())];
     }
 
 }

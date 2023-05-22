@@ -4,6 +4,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use Maalls\Chart\Algorithm\Logistic;
 use Maalls\Chart\Algorithm\Mandelbrot;
 use Maalls\Chart\Algorithm\Cos;
+use Maalls\Chart\Algorithm\Spiral;
 $config = [
 
     'algoritms' => [
@@ -45,7 +46,20 @@ $config = [
                 'height' => 300,
                 'class' => Cos::class
             ]
-        ]
+            ],
+            [
+                'name' => "Spiral",
+    
+                'parameters' => [
+                    'xMin' => -2,
+                    'xMax' => 2,
+                    'yMin' => -2,
+                    'yMax' => 2,
+                    'width' => 600,
+                    'height' => 300,
+                    'class' => Spiral::class
+                ]
+            ]
     ]
 ];
 
