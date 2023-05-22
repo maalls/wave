@@ -19,7 +19,9 @@ $chart->setRanges($xMin, $xMax, $yMin, $yMax);
 //$chart->setCenter(200, $height/2);
 //$chart->printTime = true;
 
-$algo = new Logistic();
+$class = getP('class', Logistic::class);
+$algo = new $class;
+
 //$algo = new Xtmap();
 $chart->add($algo);
 

@@ -52,7 +52,7 @@ function requestImage(parameters, callback) {
 
                     function step(startTime) {
                         timeFromLastUpdate = startTime - timeWhenLastUpdate;
-                        
+
                         if (timeWhenLastUpdate == 0 || timeFromLastUpdate > timePerFrame) {
                             console.log("animate");
                             mainImage.src = images[frameNumber - 1].src;
@@ -62,7 +62,7 @@ function requestImage(parameters, callback) {
                                 console.log("end of loop");
                                 frameNumber = 1;
                                 //requestAnimationFrame(step);
-                                
+
                             } else {
                                 frameNumber = frameNumber + 1;
                                 requestAnimationFrame(step);
@@ -72,7 +72,7 @@ function requestImage(parameters, callback) {
                             requestAnimationFrame(step);
                         }
 
-                        
+
                     }
 
                     requestAnimationFrame(step);
@@ -95,7 +95,7 @@ function requestImage(parameters, callback) {
             parameters.xMax = rsp.info.xMax;
             parameters.yMin = rsp.info.yMin;
             parameters.yMax = rsp.info.yMax;
-            console.log("Parameters", {...parameters});
+            console.log("Parameters", { ...parameters });
 
             if (callback) {
                 callback();
@@ -107,7 +107,6 @@ function requestImage(parameters, callback) {
 
 }
 
-
 var parameters = {
     width: 300,
     height: 200,
@@ -117,27 +116,13 @@ var parameters = {
     yMax: 1
 }
 
-
-for (let pair of new URLSearchParams(window.location.search.substring(1)).entries()) {
-    parameters[pair[0]] = pair[1];
-}
-
-console.log(parameters);
-
-
-//document.location.search = parameters;
-
-
-requestImage(parameters);
-
-
 var selector;
 
 selector = document.createElement("div");
 
 selector.style.position = 'absolute';
-selector.style.top = (8 + 10) + 'px';
-selector.style.left = (8 + 10) + 'px';
+selector.style.top = (8 + 30) + 'px';
+selector.style.left = (8 + 30) + 'px';
 selector.style.width = 100 + 'px';
 selector.style.height = Math.round(100 * parameters.height / parameters.width) + 'px';
 selector.style.backgroundColor = 'blue';
@@ -160,7 +145,7 @@ selector.ondblclick = function (e) {
 
     var yMax = (dataset.centerY - (selector.offsetTop - mainImage.offsetTop) * yRatio) / dataset.yUnit;
     var yMin = yMax - selector.clientHeight * yRatio / dataset.yUnit;
-    
+
     parameters.zoom = xMin + ','
         + xMax + ','
         + yMin + ','
@@ -251,3 +236,70 @@ interface.appendChild(selector);
 document.body.appendChild(interface);
 
 var dataset;
+
+
+
+
+let aj = new XMLHttpRequest();
+
+aj.open("GET", '/api-config.php', true);
+
+// function execute after request is successful
+aj.onreadystatechange = function () {
+
+    if (aj.readyState == 4 && aj.status == 200) {
+
+        let rsp = JSON.parse(this.responseText);
+
+        console.log('rsp', rsp);
+
+        let config = rsp;
+
+        for (let pair of new URLSearchParams(window.location.search.substring(1)).entries()) {
+            parameters[pair[0]] = pair[1];
+        }
+
+        if(parameters.class == undefined) {
+            config.algoritm = config.algoritms[0];
+            parameters = {...config.algoritm.parameters};
+        }
+        else {
+            console.log("found", parameters.class);
+            config.algoritm = config.algoritms.find(e => e.parameters.class == parameters.class);
+        }
+    
+        console.log('calling', parameters);
+    
+    
+        //document.location.search = parameters;
+    
+    
+        requestImage(parameters);
+
+        let algoSelect = document.createElement("select");
+        config.algoritms.forEach((a,i) => {
+            let algoOption = document.createElement("option");
+            algoOption.value = i;
+            algoOption.innerHTML = a.name;
+            //console.log("c", config, a.class, config.algoritm.parameters.class);
+            if(a.parameters.class == config.algoritm.parameters.class) {
+                algoOption.selected = 'selected';
+            }
+            algoSelect.appendChild(algoOption);
+        });
+
+        algoSelect.onchange = e => {
+            console.log("change", config);
+            config.algoritm = config.algoritms[algoSelect.value];
+            parameters = config.algoritm.parameters;
+            requestImage(parameters);
+        }
+
+        controller.appendChild(algoSelect);
+
+    }
+
+    
+
+}
+aj.send();
