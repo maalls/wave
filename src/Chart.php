@@ -3,8 +3,10 @@
 namespace Maalls\Chart;
 
 use GifCreator\AnimGif;
+use Maalls\Chart\Algorithm\Surjectif;
 use Maalls\Chart\Tool\MultiThread;
 use Maalls\Chart\Axis;
+
 class Chart
 {
 
@@ -400,9 +402,14 @@ class Chart
             list($xx, $xy) = $this->axes[0]->transform($x);
             foreach ($result as $k => $y) {
                 //echo $x . ' :' . $this->xToP($x) . ' ';
-                
-                list($yx, $yy) = $this->axes[$k + 1]->transform($y);
-                $this->setHexColor($this->axes[$k+1]->color);
+                if(is_a($function, Surjectif::class)) {
+                    $axeKey = 1;
+                }
+                else {
+                    $axeKey = $k + 1;
+                }
+                list($yx, $yy) = $this->axes[$axeKey]->transform($y);
+                $this->setHexColor($this->axes[$axeKey]->color);
                 imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
                 
             }

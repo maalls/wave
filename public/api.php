@@ -4,6 +4,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use \Maalls\Chart\Chart;
 use \Maalls\Chart\Algorithm\Mandelbrot;
 use \Maalls\Chart\Algorithm\Xtmap;
+use \Maalls\Chart\Algorithm\Logistic;
 use \Maalls\Chart\Algorithm\Cos;
 $width = getP('width', 200);
 $height = getP('height', 200);
@@ -18,7 +19,7 @@ $chart->setRanges($xMin, $xMax, $yMin, $yMax);
 //$chart->setCenter(200, $height/2);
 //$chart->printTime = true;
 
-$algo = new Cos();
+$algo = new Logistic();
 //$algo = new Xtmap();
 $chart->add($algo);
 

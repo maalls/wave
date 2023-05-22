@@ -61,7 +61,7 @@ function requestImage(parameters, callback) {
                             if (frameNumber >= totalFrames) {
                                 console.log("end of loop");
                                 frameNumber = 1;
-                                requestAnimationFrame(step);
+                                //requestAnimationFrame(step);
                                 
                             } else {
                                 frameNumber = frameNumber + 1;
