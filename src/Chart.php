@@ -72,9 +72,9 @@ class Chart
         $this->width = $width;
         $this->height = $height;
         $this->axes = [
-            new Axis(-$width / 2, $width / 2, -0.2, $width, "#00FF00"),
-            new Axis(-$height / 2, $height / 2, -pi() / 2, $height, "#FF00FF"),
-            new Axis(-$height / 2, $height / 2, 0.2, $height, "#00FFFF"),
+            new Axis(-$width / 2, $width / 2, -0, $width, "#00FF00"),
+            new Axis(-$height / 2, $height / 2, pi() / 4, $height, "#FF00FF"),
+            new Axis(-$height / 2, $height / 2, -pi()/2, $height, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2 / 10, $width / 2 / 10, -$height / 2 / 10, $height / 2 / 10);
@@ -390,7 +390,7 @@ class Chart
 
 
         }*/
-
+        $prevX = $prevY = null;
         for ($x = $this->xMin; $x < $this->xMax; $x += 1 / $this->xUnit) {
 
 
@@ -414,7 +414,17 @@ class Chart
                 //echo "$yx, $yy";
                 //exit;
                 $this->setHexColor($this->axes[$k+1]->color);
-                imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
+                $px = round($this->xToP($xx + $yx));
+                $py = round($this->yToP(-($yy + $xy)));
+                if($prevX == null) {
+                    imagesetpixel($this->image, $px, $py, $this->color);
+
+                }
+                else {
+                    imageline($this->image, $prevX, $prevY, $px, $py, $this->color);
+                }
+                $prevX = $px;
+                $prevY = $py;
 
 
             } else {
