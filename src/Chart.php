@@ -3,6 +3,7 @@
 namespace Maalls\Chart;
 
 use GifCreator\AnimGif;
+use Maalls\Chart\Algorithm\Drawing;
 use Maalls\Chart\Algorithm\Surjectif;
 use Maalls\Chart\Tool\MultiThread;
 use Maalls\Chart\Axis;
@@ -72,14 +73,15 @@ class Chart
         $this->width = $width;
         $this->height = $height;
         $this->axes = [
-            new Axis(-$width / 2, $width / 2, -0, $width, "#00FF00"),
-            new Axis(-$height / 2, $height / 2, pi() / 4, $height, "#FF00FF"),
-            new Axis(-$height / 2, $height / 2, -pi()/2, $height, "#00FFFF"),
+            new Axis(0,  "#00FF00"),
+            new Axis(pi()/ 2, "#FF00FF"),
+            new Axis(-pi() / 4, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
-        $this->setRanges(-$width / 2 / 10, $width / 2 / 10, -$height / 2 / 10, $height / 2 / 10);
+        $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2);
 
-        $this->image = imagecreate($this->width, $this->height);
+        $this->image = imagecreatetruecolor($this->width, $this->height);
+        imageantialias($this->image, true);
 
         $this->black = imagecolorallocate($this->image, 0, 0, 0);
         $this->color = $this->black;
@@ -102,7 +104,11 @@ class Chart
 
         if (is_a($function, \Closure::class)) {
             $f = new \ReflectionFunction($function);
-        } else {
+        } 
+        else if(is_a($function, Drawing::class)) {
+            $f = new \ReflectionMethod(get_class($function), "draw");
+        }
+        else {
 
             $f = new \ReflectionMethod(get_class($function), "map");
 
@@ -130,6 +136,8 @@ class Chart
                 $type = 'xyt';
                 $this->useTime = true;
                 break;
+            default:
+                $type = null;
         }
 
         $this->functions[] = [$function, $hexColor, $type];
@@ -289,6 +297,10 @@ class Chart
 
         $this->init();
 
+        if ($this->showAxes) {
+            $this->drawAxes();
+        }
+
         if ($this->transforms && $this->transforms[$t]) {
             list($xMinStep, $xMaxStep, $yMinStep, $yMaxStep, $angleStep) = $this->transforms[$t];
             $this->setRanges($this->startRanges[0] + $xMinStep, $this->startRanges[1] + $xMaxStep, $this->startRanges[2] + $yMinStep, $this->startRanges[3] + $yMaxStep);
@@ -298,25 +310,28 @@ class Chart
         $scaledT = $t / $this->framePerSecond;
         foreach ($this->functions as $function) {
 
-            if (method_exists($function[0], 'init')) {
-                $function[0]->init($this);
+            if(is_a($function[0], Drawing::class)) {
+                $function[0]->draw($this, $t);
             }
-            switch ($function[2]) {
+            else {
 
-                case 'x': // constant over time
-                case 'xt':
-                    $this->drawX($function[0], $function[1], $scaledT);
+                if (method_exists($function[0], 'init')) {
+                    $function[0]->init($this);
+                }
+                switch ($function[2]) {
 
-                    break;
-                case 'xy':
-                case 'xyt':
-                    $this->drawXY($function[0], $scaledT);
+                    case 'x': // constant over time
+                    case 'xt':
+                        $this->drawX($function[0], $function[1], $scaledT);
+                        break;
+                    case 'xy':
+                    case 'xyt':
+                        $this->drawXY($function[0], $scaledT);
+                }
             }
 
         }
-        if ($this->showAxes) {
-            $this->drawAxes();
-        }
+        
 
         if ($this->printTime) {
             $time = round($t / $this->framePerSecond, 2);
@@ -337,7 +352,7 @@ class Chart
             imagettftext($this->image, 8, 0, 0, $this->height - 2, $this->black, $fontPath, $text);
 
         }
-        //imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
+        imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
         imagepng($this->image, $frame);
 
         return $frame;
@@ -358,11 +373,9 @@ class Chart
                 $this->setHexColor($hex);
                 imagesetpixel($this->image, $i, $j, $this->color);
 
-
             }
 
         }
-
 
     }
 
@@ -375,21 +388,6 @@ class Chart
             $this->setHexColor($hex);
         }
 
-        /*for ($i = 0; $i < $this->width; $i++) {
-
-            $x = $this->xMin + $i / $this->xUnit;
-
-            $result = $this->executeX($function, $x, $t);
-            if (!is_array($result)) {
-                $result = [$result];
-            }
-            foreach ($result as $y) {
-                $this->pixel($i, $y);
-            }
-
-
-
-        }*/
         $prevX = $prevY = null;
         for ($x = $this->xMin; $x < $this->xMax; $x += 1 / $this->xUnit) {
 
@@ -404,13 +402,16 @@ class Chart
 
                 list($xx, $xy) = $this->axes[0]->transform($x);
                 list($yx, $yy) = [0,0];
+                //echo "$x => ";
                 foreach($result as $k => $y) {
-
+                    //echo "($x, $y) => ";
                     list($lx, $ly) = $this->axes[$k+1]->transform($y);
                     $yx +=$lx;
                     $yy +=$ly;
                     
                 }
+
+                //echo "<br/>";
                 //echo "$yx, $yy";
                 //exit;
                 $this->setHexColor($this->axes[$k+1]->color);
@@ -429,9 +430,10 @@ class Chart
 
             } else {
 
+                
                 list($xx, $xy) = $this->axes[0]->transform($x);
 
-                if (is_a($function, Surjectif::class))
+                if (true || is_a($function, Surjectif::class)) {
 
                     foreach ($result as $k => $y) {
                         //echo $x . ' :' . $this->xToP($x) . ' ';
@@ -445,6 +447,7 @@ class Chart
                         imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
 
                     }
+                }
             }
 
         }
@@ -475,6 +478,69 @@ class Chart
     }
 
 
+    public function drawAxes()
+    {
+
+        $tickSize = 5;
+        $angle = $this->angle;
+
+        foreach ($this->axes as $k => $axis) {
+
+            
+            $start = $this->toP($axis->transform($this->xMin));
+            $end = $this->toP($axis->transform($this->xMax));
+            $this->setHexColor($axis->color);
+            imageline($this->image, $start[0], $start[1], $end[0], $end[1], $this->color);
+            
+            $axe = $this->axes[0];
+            $this->setHexColor("#ababab");
+            foreach([$this->xMin, $this->xMax] as $x) {
+                $p = $this->toP($axe->transform($x));
+                imagefilledrectangle($this->image, $p[0] - 1, $p[1] - 1, $p[0]+1, $p[1], $this->color);
+                
+            }
+
+        }
+
+        /*imageline($this->image, 0, $this->centerY - round($this->centerX*tan($angle)), $this->width, $this->centerY + round(($this->width - $this->centerX)*tan($angle)), $this->axisColor);
+
+        imageline($this->image, 0, $this->centerY, $this->width, $this->centerY, $this->axisColor);
+        imageline($this->image, $this->centerX, 0, $this->centerX, $this->height, $this->axisColor);
+
+        for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
+
+            $ia = round($this->xToP($this->pToX($i) * cos($angle)));
+
+            $ya = round($this->yToP(-$this->pToX($i) * sin($angle)));
+            
+            imageline($this->image, $ia, $ya - $tickSize, $ia, $ya + $tickSize, $this->axisColor);
+        }
+        */
+
+        /*for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
+            imageline($this->image, round($i), $this->centerY - $tickSize, round($i), $this->centerY + $tickSize, $this->axisColor);
+        }
+
+
+        for ($i = $this->centerY + $this->yUnit * floor($this->centerY / $this->yUnit); $i >= 0; $i -= $this->yUnit) {
+            imageline($this->image, round($this->centerX - $tickSize), round($i), round($this->centerX + $tickSize), round($i), $this->axisColor);
+        }*/
+    }
+
+    public function drawLine($x1, $y1, $x2, $y2, $hex = '#000000') {
+
+
+        list($x1, $y1) = $this->transform($x1, $y1);
+        list($x2, $y2) = $this->transform($x2, $y2);
+        //var_dump($x1, $y1, $x2, $y2);
+
+        $this->setHexColor($hex);
+        imageline($this->image, $x1, $y1, $x2, $y2, $this->color);
+                
+
+    }
+
+
 
 
     public function setHexColor($hex)
@@ -485,6 +551,7 @@ class Chart
         } else {
             list($r, $g, $b) = sscanf($hex, "#%02x%02x%02x");
             $this->color = imagecolorallocate($this->image, $r, $g, $b);
+            
             $this->hexCache[$hex] = $this->color;
         }
 
@@ -509,11 +576,11 @@ class Chart
         $this->yUnit = $this->height / $this->yRange;
 
 
-        $this->centerX = round(-$this->xMin * $this->xUnit);
-        $this->centerY = $this->height + round($this->yMin * $this->yUnit);
+        $this->centerX = -$this->xMin * $this->xUnit;
+        $this->centerY = $this->height + $this->yMin * $this->yUnit;
 
-        $this->axes[0]->setRange($xMin, $xMax);
-        $this->axes[1]->setRange($yMin, $yMax);
+        //$this->axes[0]->setRange($xMin, $xMax);
+        //$this->axes[1]->setRange($yMin, $yMax);
 
     }
 
@@ -560,47 +627,6 @@ class Chart
 
 
 
-    public function drawAxes()
-    {
-
-        $tickSize = 5;
-        $angle = $this->angle;
-
-
-        foreach ($this->axes as $k => $axis) {
-
-            $start = $axis->pixel($axis->min);
-            $end = $axis->pixel($axis->max);
-            $this->setHexColor($axis->color);
-            imageline($this->image, $start[0] + $this->centerX, $start[1] + $this->centerY, $this->centerX + $end[0], $end[1] + $this->centerY, $this->color);
-
-
-        }
-
-        /*imageline($this->image, 0, $this->centerY - round($this->centerX*tan($angle)), $this->width, $this->centerY + round(($this->width - $this->centerX)*tan($angle)), $this->axisColor);
-
-        imageline($this->image, 0, $this->centerY, $this->width, $this->centerY, $this->axisColor);
-        imageline($this->image, $this->centerX, 0, $this->centerX, $this->height, $this->axisColor);
-
-        for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
-
-            $ia = round($this->xToP($this->pToX($i) * cos($angle)));
-
-            $ya = round($this->yToP(-$this->pToX($i) * sin($angle)));
-            
-            imageline($this->image, $ia, $ya - $tickSize, $ia, $ya + $tickSize, $this->axisColor);
-        }
-        */
-
-        for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
-            imageline($this->image, round($i), $this->centerY - $tickSize, round($i), $this->centerY + $tickSize, $this->axisColor);
-        }
-
-
-        for ($i = $this->centerY + $this->yUnit * floor($this->centerY / $this->yUnit); $i >= 0; $i -= $this->yUnit) {
-            imageline($this->image, round($this->centerX - $tickSize), round($i), round($this->centerX + $tickSize), round($i), $this->axisColor);
-        }
-    }
 
     public function printParameters()
     {
@@ -650,6 +676,30 @@ class Chart
             $this->logger->log($msg, $level);
         }
     }
+
+    
+    public function toP($x) {
+        return [round($this->xToP($x[0])), round($this->yToP($x[1]))];
+    }
+    public function transform($x, $y = 0, $z = 0) {
+
+
+        $v = [$x, $y, $z];
+        $px = $py = 0;
+        foreach($this->axes as $k => $axe) {
+
+            list($tr1, $tr2) = $axe->transform($v[$k]);
+            $px += $tr1;
+            $py += $tr2;
+
+
+        }
+
+        return [round($this->xToP($px)), round($this->yToP($py))];
+
+    }
+
+    
 
     public function xToP($x)
     {

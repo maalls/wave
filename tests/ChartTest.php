@@ -67,6 +67,20 @@ final class ChartTest extends TestCase
         
     }
 
+    public function testTransform(): void 
+    {
+        $chart = new Chart(400, 600);
+        $chart->setRanges(-2,2, -3,3);
+
+        
+        $this->assertEquals([0, 0], $chart->transform(-2,3));
+        $this->assertEquals([0, 600], $chart->transform(-2,-3));
+        $this->assertEquals([400, 600], $chart->transform(2,-3));
+        $this->assertEquals([400, 0], $chart->transform(2,3));
+        $this->assertEquals([200, 300], $chart->transform(0,0));
+
+    }
+
     
 
 }

@@ -6,6 +6,8 @@ use \Maalls\Chart\Algorithm\Mandelbrot;
 use \Maalls\Chart\Algorithm\Xtmap;
 use \Maalls\Chart\Algorithm\Logistic;
 use \Maalls\Chart\Algorithm\Cos;
+use \Maalls\Chart\Algorithm\Cube;
+
 $width = getP('width', 200);
 $height = getP('height', 200);
 
