@@ -73,9 +73,9 @@ class Chart
         $this->width = $width;
         $this->height = $height;
         $this->axes = [
-            new Axis(0,  "#00FF00"),
+            new Axis(-pi()/4,  "#00FF00"),
             new Axis(pi()/ 2, "#FF00FF"),
-            new Axis(-pi() / 4, "#00FFFF"),
+            new Axis(0, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2);
@@ -402,7 +402,7 @@ class Chart
 
                 list($xx, $xy) = $this->axes[0]->transform($x);
                 list($yx, $yy) = [0,0];
-                //echo "$x => ";
+     
                 foreach($result as $k => $y) {
                     //echo "($x, $y) => ";
                     list($lx, $ly) = $this->axes[$k+1]->transform($y);
@@ -411,12 +411,10 @@ class Chart
                     
                 }
 
-                //echo "<br/>";
-                //echo "$yx, $yy";
-                //exit;
+                
                 $this->setHexColor($this->axes[$k+1]->color);
                 $px = round($this->xToP($xx + $yx));
-                $py = round($this->yToP(-($yy + $xy)));
+                $py = round($this->yToP(($yy + $xy)));
                 if($prevX == null) {
                     imagesetpixel($this->image, $px, $py, $this->color);
 
