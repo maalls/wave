@@ -8,8 +8,20 @@ class Cube implements Drawing {
     public function draw(Chart $chart, $t) {
 
 
-        //$chart->drawLine(-1, -1, 1,1);
+        $chart->drawLine([-1, -1, -1], [-1,-1, 1], "#FFFF00");
+        $chart->drawLine([-1, -1, -1], [1, -1, -1], "#FFFF00");
+        $chart->drawLine([-1, -1, 1], [1, -1, 1], "#FFFF00");
+        $chart->drawLine([1, -1, 1], [1, -1, -1], "#FFFF00");
 
+        $chart->drawLine([-1, 1, -1], [-1, 1, 1], "#FFFF00");
+        $chart->drawLine([-1, 1, -1], [1, 1, -1], "#FFFF00");
+        $chart->drawLine([-1, 1, 1], [1, 1, 1], "#FFFF00");
+        $chart->drawLine([1, 1, 1], [1, 1, -1], "#FFFF00");
+
+        $chart->drawLine([-1, -1, -1], [-1, 1, -1], "#FFFF00");
+        $chart->drawLine([1, -1, -1], [1, 1, -1], "#FFFF00");
+        $chart->drawLine([1, -1, 1], [1, 1, 1], "#FFFF00");
+        $chart->drawLine([-1, -1, 1], [-1, 1, 1], "#FFFF00");
     }
 
 }

@@ -73,9 +73,9 @@ class Chart
         $this->width = $width;
         $this->height = $height;
         $this->axes = [
-            new Axis(-pi()/4,  "#00FF00"),
+            new Axis(0,  "#00FF00"),
             new Axis(pi()/ 2, "#FF00FF"),
-            new Axis(0, "#00FFFF"),
+            new Axis(-pi()/4, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2);
@@ -480,20 +480,20 @@ class Chart
     {
 
         $tickSize = 5;
-        $angle = $this->angle;
-
         foreach ($this->axes as $k => $axis) {
 
             
-            $start = $this->toP($axis->transform($this->xMin));
-            $end = $this->toP($axis->transform($this->xMax));
+            $start = $this->toP($axis->transform($this->pToX(0)));
+            $end = $this->toP($axis->transform($this->pToX($this->width)));
             $this->setHexColor($axis->color);
             imageline($this->image, $start[0], $start[1], $end[0], $end[1], $this->color);
             
-            $axe = $this->axes[0];
-            $this->setHexColor("#ababab");
-            foreach([$this->xMin, $this->xMax] as $x) {
-                $p = $this->toP($axe->transform($x));
+           
+            $this->setHexColor("#FF0000");
+            for($x = $this->xMin; $x <= $this->xMax; $x += 1) {
+                //echo $x . "\n";
+                $p = $this->toP($axis->transform($x));
+                //echo $p[0] . ',' . $p[1] . '\n';
                 imagefilledrectangle($this->image, $p[0] - 1, $p[1] - 1, $p[0]+1, $p[1], $this->color);
                 
             }
@@ -525,11 +525,11 @@ class Chart
         }*/
     }
 
-    public function drawLine($x1, $y1, $x2, $y2, $hex = '#000000') {
+    public function drawLine($start, $end, $hex = '#000000') {
 
 
-        list($x1, $y1) = $this->transform($x1, $y1);
-        list($x2, $y2) = $this->transform($x2, $y2);
+        list($x1, $y1) = $this->transform($start);
+        list($x2, $y2) = $this->transform($end);
         //var_dump($x1, $y1, $x2, $y2);
 
         $this->setHexColor($hex);
@@ -679,14 +679,12 @@ class Chart
     public function toP($x) {
         return [round($this->xToP($x[0])), round($this->yToP($x[1]))];
     }
-    public function transform($x, $y = 0, $z = 0) {
+    public function transform($x) {
 
-
-        $v = [$x, $y, $z];
         $px = $py = 0;
         foreach($this->axes as $k => $axe) {
 
-            list($tr1, $tr2) = $axe->transform($v[$k]);
+            list($tr1, $tr2) = $axe->transform($x[$k]);
             $px += $tr1;
             $py += $tr2;
 
