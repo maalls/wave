@@ -2,42 +2,61 @@
 
 namespace Maalls\Chart\Algorithm;
 use Maalls\Chart\Chart;
-use Maalls\Chart\Chart\Particle;
-class Cube implements Drawing {
+use Maalls\Chart\Physics\World;
+use Maalls\Chart\Physics\Particle;
+class Physics implements Drawing {
 
-    private $position;
-    private $speed;
-    private $lastTime;
-
-    private $particle;
+    private $world;
+    private $chart;
 
     public function __construct() {
-        $this->position = 1;
-        $this->speed = 0;
-        $this->lastTime = 0;
+        $this->world = new World();
+
+        $particle = new Particle([0,0,0.5]);
+        $particle->color = '#FF0000';
+        $this->world->addParticle($particle);
+
+        $earthMass = 5.97219 * pow(10,24);
+        $particle = new Particle([0,0,-0.5]);
+        $particle->color = "#00FFFF";
+        $this->world->addParticle($particle);
+
     
     }
     public function draw(Chart $chart, $t) {
 
+        $this->chart = $chart;
+        $this->world->timeUnit = 1/$chart->framePerSecond;
         // assuming gravity is constant
-        $a = -0.1;
+        /*$a = -0.1;
 
         $frameCount = $chart->frameCount / $chart->framePerSecond;
         $deltaT = 1/$chart->framePerSecond;
         $this->speed += $a * $deltaT;
         $this->position += $this->speed * $deltaT;
+        */
 
-
+        $this->world->iterate();
+        //$this->drawCube([0, 0, 0], 1, 2, "#000000");
         
 
-        
-        $this->drawCube($chart, 0, 0, 0, 1, 2, "#000000");
-        $this->drawCube($chart, 0, 0, $this->position, 0.05, 0.05, "#000000");
-        $this->drawCube($chart, 0, 0, -1, 0.05, 0.05, "#FF00FF");
+        foreach($this->world->getParticles() as $particle) {
+            $this->drawParticle($particle);
+        }
+
+        $chart->drawLine($this->world->particles[0]->position, $this->world->particles[1]->position, '#0000FF');
     }
 
-    public function drawCube($chart, $x, $y, $z, $width, $height, $color) {
+    public function drawParticle($particle) {
 
+        $this->drawCube($particle->position, 0.05, 0.05, $particle->color);
+
+    }
+
+    public function drawCube($position, $width, $height, $color) {
+
+        list($x, $y, $z) = $position;
+        $chart = $this->chart;
         $halfWidth = $width/2;
         $halfHeight = $height / 2;
         $xb = $x - $halfWidth;

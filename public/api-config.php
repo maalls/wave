@@ -6,7 +6,7 @@ use Maalls\Chart\Algorithm\Mandelbrot;
 use Maalls\Chart\Algorithm\Cos;
 use Maalls\Chart\Algorithm\Spiral;
 use Maalls\Chart\Algorithm\Cube;
-
+use Maalls\Chart\Algorithm\Physics;
 $config = [
 
     'algoritms' => [
@@ -19,8 +19,10 @@ $config = [
                 'yMin' => 0,
                 'yMax' => 1,
                 'width' => 300,
-                'heigth' => 300,
-                'class' => Logistic::class
+                'height' => 300,
+                'class' => Logistic::class,
+                'frameRate' => 1,
+                'duration' => 1
             ]
         ],
         [
@@ -33,7 +35,9 @@ $config = [
                 'yMax' => 1,
                 'width' => 600,
                 'height' => 300,
-                'class' => Mandelbrot::class
+                'class' => Mandelbrot::class,
+                'frameRate' => 1,
+                'duration' => 1
             ]
         ],
         [
@@ -46,7 +50,9 @@ $config = [
                 'yMax' => 2,
                 'width' => 600,
                 'height' => 300,
-                'class' => Cos::class
+                'class' => Cos::class,
+                'frameRate' => 1,
+                'duration' => 1
             ]
         ],
         [
@@ -59,7 +65,9 @@ $config = [
                 'yMax' => 2,
                 'width' => 600,
                 'height' => 300,
-                'class' => Spiral::class
+                'class' => Spiral::class,
+                'frameRate' => 1,
+                'duration' => 1
             ]
         ],
         [
@@ -71,8 +79,25 @@ $config = [
                 'yMin' => -2,
                 'yMax' => 2,
                 'width' => 600,
-                'heigth' => 600,
-                'class' => Cube::class
+                'height' => 600,
+                'class' => Cube::class,
+                'frameRate' => 1,
+                'duration' => 1
+            ]
+        ],
+        [
+            'name' => "Physics",
+
+            'parameters' => [
+                'xMin' => -2,
+                'xMax' => 2,
+                'yMin' => -2,
+                'yMax' => 2,
+                'width' => 600,
+                'height' => 600,
+                'class' => Physics::class,
+                'frameRate' => 10,
+                'duration' => 10
             ]
         ]
     ]

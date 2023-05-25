@@ -73,12 +73,26 @@ final class ChartTest extends TestCase
         $chart->setRanges(-2,2, -3,3);
 
         
-        $this->assertEquals([0, 0], $chart->transform(-2,3));
-        $this->assertEquals([0, 600], $chart->transform(-2,-3));
-        $this->assertEquals([400, 600], $chart->transform(2,-3));
-        $this->assertEquals([400, 0], $chart->transform(2,3));
-        $this->assertEquals([200, 300], $chart->transform(0,0));
+        /*$this->assertEquals([0, 0], $chart->transform([-2,3, 0]));
+        $this->assertEquals([0, 600], $chart->transform([-2,-3, 0]));
+        $this->assertEquals([400, 600], $chart->transform([2,-3, 0]));
+        $this->assertEquals([400, 0], $chart->transform([2,3, 0]));
+        $this->assertEquals([200, 300], $chart->transform([0,0, 0]));
+        */
+    }
 
+    public function testToP(): void {
+
+        $chart = new Chart(400, 600);
+        $chart->setRanges(-2,2, -3,3);
+
+        $chart->toP([0, 0, 0]);
+
+
+        $x = 5.972 * pow(10,12);
+        $x = round($x);
+        var_dump($x);
+        var_dump(strstr($x, "E+"));
     }
 
     

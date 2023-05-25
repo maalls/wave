@@ -41,8 +41,8 @@ class Chart
 
     public $timeUnit = 16;
 
-    public $frameCount = 1;
-    public $framePerSecond = 24;
+    public $frameCount = 100;
+    public $framePerSecond = 10;
     public $functions = [];
 
     public $hexCache = [];
@@ -74,8 +74,8 @@ class Chart
         $this->height = $height;
         $this->axes = [
             new Axis(0,  "#00FF00"),
-            new Axis(pi()/ 2, "#FF00FF"),
-            new Axis(-pi()/4, "#00FFFF"),
+            new Axis(-pi()/ 4, "#FF00FF"),
+            new Axis(pi()/2, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
         $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2);
@@ -107,6 +107,7 @@ class Chart
         } 
         else if(is_a($function, Drawing::class)) {
             $f = new \ReflectionMethod(get_class($function), "draw");
+            $this->useTime = true;
         }
         else {
 
@@ -167,13 +168,8 @@ class Chart
         $durations = [];
         $duration = round(100 / $this->framePerSecond);
 
-        if (!$this->useTime && !$this->motions) {
-            $frameCount = 1;
-        } else {
-            $frameCount = $this->frameCount;
-        }
-
-
+        
+        
         $motion = null;
         $lastFrame = null;
         $xMinStep = $xMaxStep = $yMinStep = $yMaxStep = $angleStep = 0;
@@ -181,7 +177,7 @@ class Chart
         $this->transforms = [];
         if ($this->motions) {
 
-            for ($t = 0; $t < $frameCount; $t++) {
+            for ($t = 0; $t < $this->frameCount; $t++) {
                 if ($motion && $t > $lastFrame) {
                     //echo "REMOVE";          
                     $motion = null;
@@ -266,10 +262,10 @@ class Chart
 
         if ($this->multiThread) {
             $multiThread = new MultiThread();
-            $multiThread->iterate([$this, "drawT"], 0, $frameCount);
+            $multiThread->iterate([$this, "drawT"], 0, $this->frameCount);
 
         } else {
-            for ($t = 0; $t < $frameCount; $t++) {
+            for ($t = 0; $t < $this->frameCount; $t++) {
 
                 $frame = $this->drawT($t);
 
@@ -277,7 +273,7 @@ class Chart
         }
 
 
-        if ($frameCount > 1) {
+        if ($this->frameCount > 1) {
 
             if (!is_dir($file)) {
                 // todo
@@ -311,7 +307,7 @@ class Chart
         foreach ($this->functions as $function) {
 
             if(is_a($function[0], Drawing::class)) {
-                $function[0]->draw($this, $t);
+                $function[0]->draw($this, $scaledT);
             }
             else {
 
@@ -336,7 +332,7 @@ class Chart
         if ($this->printTime) {
             $time = round($t / $this->framePerSecond, 2);
             $fontPath = __DIR__ . '/font/Helvetica.ttf';
-            $text = str_pad(number_format($time, 1), 3, " ", STR_PAD_LEFT) . " sec " . str_pad($t + 1, strlen($frameCount), ' ', STR_PAD_LEFT) . "/" . $frameCount;
+            $text = str_pad(number_format($time, 1), 3, " ", STR_PAD_LEFT) . " sec " . str_pad($t + 1, strlen($this->frameCount), ' ', STR_PAD_LEFT) . "/" . $this->frameCount;
 
             if (true) {
 
@@ -690,7 +686,7 @@ class Chart
 
 
         }
-
+            
         return [round($this->xToP($px)), round($this->yToP($py))];
 
     }

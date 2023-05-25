@@ -20,6 +20,79 @@ function formatParams(params) {
         .join("&")
 }
 
+let player = {
+
+    uri: '',
+    frameCount: 0,
+    duration: 0,
+    replay: false,
+
+    play: function () {
+        console.log("play", this.uri, this.frameCount);
+        
+        let images = [];
+        let loadCount = 0;
+        this.onLoad = (e) => {
+            loadCount++;
+            
+            if (loadCount == this.frameCount) {
+
+
+                const totalFrames = this.frameCount;
+                const animationDuration = this.duration;
+                const timePerFrame = animationDuration / totalFrames * 1000;
+
+                console.log('ok', 'time per frame', timePerFrame);
+                let timeWhenLastUpdate = 0;
+                let timeFromLastUpdate;
+                let frameNumber = 1;
+
+                function step(startTime) {
+                    if(this.replay) {
+                        this.replay = false;
+          
+                    }
+                    timeFromLastUpdate = startTime - timeWhenLastUpdate;
+                    
+                    if (timeWhenLastUpdate == 0 || timeFromLastUpdate > timePerFrame) {
+                        console.log("animate", timeWhenLastUpdate, timeFromLastUpdate);
+                        mainImage.src = images[frameNumber - 1].src;
+                        timeWhenLastUpdate = startTime;
+
+                        if (frameNumber >= totalFrames) {
+                            console.log("end of loop");
+                            frameNumber = 1;
+                            //requestAnimationFrame(step);
+
+                        } else {
+                            frameNumber = frameNumber + 1;
+                            requestAnimationFrame(step);
+                        }
+                    }
+                    else {
+                        requestAnimationFrame(step);
+                    }
+
+
+                }
+
+                requestAnimationFrame(step);
+
+            }
+        }
+        for (let i = 1; i <= this.frameCount; i++) {
+            var image = document.createElement('img');
+            image.onload = this.onLoad;
+            image.src = this.uri + '/' + i + ".png";
+            images.push(image);
+        }
+
+
+    }
+}
+
+
+
 function requestImage(parameters, callback) {
     console.log("pushing state", { ...parameters });
     window.history.replaceState(null, null, "?" + new URLSearchParams(parameters).toString());
@@ -36,59 +109,11 @@ function requestImage(parameters, callback) {
             let rsp = JSON.parse(this.responseText);
             console.log(rsp);
 
-            let images = [];
-            let loadCount = 0;
-            function onload(e) {
-                loadCount++;
-                console.log('ok', loadCount, rsp.info.frames);
-                if (loadCount == rsp.info.frames) {
 
-                    const totalFrames = rsp.info.frames;
-                    const animationDuration = 3000;
-                    const timePerFrame = animationDuration / totalFrames;
-                    let timeWhenLastUpdate = 0;
-                    let timeFromLastUpdate;
-                    let frameNumber = 1;
-
-                    function step(startTime) {
-                        timeFromLastUpdate = startTime - timeWhenLastUpdate;
-
-                        if (timeWhenLastUpdate == 0 || timeFromLastUpdate > timePerFrame) {
-                            console.log("animate");
-                            mainImage.src = images[frameNumber - 1].src;
-                            timeWhenLastUpdate = startTime;
-
-                            if (frameNumber >= totalFrames) {
-                                console.log("end of loop");
-                                frameNumber = 1;
-                                //requestAnimationFrame(step);
-
-                            } else {
-                                frameNumber = frameNumber + 1;
-                                requestAnimationFrame(step);
-                            }
-                        }
-                        else {
-                            requestAnimationFrame(step);
-                        }
-
-
-                    }
-
-                    requestAnimationFrame(step);
-
-                }
-            }
-            for (let i = 1; i <= rsp.info.frames; i++) {
-                var image = document.createElement('img');
-                var uri = '/' + rsp.dir + "/" + i + ".png";
-                image.onload = onload;
-                image.src = uri;
-                images.push(image);
-            }
-
-
-
+            player.uri =  '/' + rsp.dir;
+            player.frameCount = rsp.info.frames;
+            player.duration = parameters.duration;
+            player.play();
             //mainImage.src = '/' + rsp.dir + "/1.png";
             dataset = rsp.info;
             parameters.xMin = rsp.info.xMin;
@@ -113,7 +138,10 @@ var parameters = {
     xMin: -2,
     xMax: 1,
     yMin: -1,
-    yMax: 1
+    yMax: 1,
+    frameRate: 1,
+    duration: 1,
+    printTime: 0
 }
 
 var selector;
@@ -122,7 +150,7 @@ selector = document.createElement("div");
 
 selector.style.position = 'absolute';
 selector.style.top = (8 + 30) + 'px';
-selector.style.left = (8 + 30) + 'px';
+selector.style.right = (8 + 30) + 'px';
 selector.style.width = 100 + 'px';
 selector.style.height = Math.round(100 * parameters.height / parameters.width) + 'px';
 selector.style.backgroundColor = 'blue';
@@ -227,8 +255,6 @@ if (imageHistory.length == 0) {
 controller.appendChild(backButton);
 
 var interface = document.createElement("div");
-
-
 interface.appendChild(mainImage);
 interface.appendChild(controller);
 interface.appendChild(selector);
@@ -259,30 +285,30 @@ aj.onreadystatechange = function () {
             parameters[pair[0]] = pair[1];
         }
 
-        if(parameters.class == undefined) {
+        if (parameters.class == undefined) {
             config.algoritm = config.algoritms[0];
-            parameters = {...config.algoritm.parameters};
+            parameters = { ...config.algoritm.parameters };
         }
         else {
             console.log("found", parameters.class);
             config.algoritm = config.algoritms.find(e => e.parameters.class == parameters.class);
         }
-    
+
         console.log('calling', parameters);
-    
-    
+
+
         //document.location.search = parameters;
-    
-    
+
+
         requestImage(parameters);
 
         let algoSelect = document.createElement("select");
-        config.algoritms.forEach((a,i) => {
+        config.algoritms.forEach((a, i) => {
             let algoOption = document.createElement("option");
             algoOption.value = i;
             algoOption.innerHTML = a.name;
             //console.log("c", config, a.class, config.algoritm.parameters.class);
-            if(a.parameters.class == config.algoritm.parameters.class) {
+            if (a.parameters.class == config.algoritm.parameters.class) {
                 algoOption.selected = 'selected';
             }
             algoSelect.appendChild(algoOption);
@@ -297,9 +323,61 @@ aj.onreadystatechange = function () {
 
         controller.appendChild(algoSelect);
 
+
+        createParameterInput('frameRate', parameters, controller);
+        createParameterInput('duration', parameters, controller);
+        createParameterInput('width', parameters, controller);
+        createParameterInput('height', parameters, controller);
+
+        createParameterInput('xMin', parameters, controller);
+        createParameterInput('xMax', parameters, controller);
+
+        createParameterInput('yMin', parameters, controller);
+        createParameterInput('yMax', parameters, controller);
+        createParameterInput('printTime', parameters, controller);
+       
+        let replayButton = document.createElement("button");
+        replayButton.innerHTML = 'replay';
+        replayButton.onclick = function (e) {
+
+            player.replay = true;
+            player.play();
+
+        }
+
+        controller.appendChild(replayButton);
     }
 
-    
+
 
 }
 aj.send();
+
+function createParameterInput(name, parameters) {
+
+    let div = createInputWithLabel(name, parameters[name], function (e) {
+        console.log('change param', name, this.value);
+        parameters[name] = this.value;
+        requestImage(parameters);
+    });
+
+    controller.appendChild(div);
+
+    return div;
+
+}
+function createInputWithLabel(label, value, onChange) {
+
+    var frameRateDiv = document.createElement("div");
+
+    labelDom = document.createElement("label");
+    labelDom.innerHTML = label;
+    input = document.createElement("input");
+    input.value = value;
+    input.onchange = onChange;
+    frameRateDiv.appendChild(labelDom);
+    frameRateDiv.appendChild(input);
+
+    return frameRateDiv;
+
+}

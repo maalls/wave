@@ -10,17 +10,22 @@ use \Maalls\Chart\Algorithm\Cube;
 
 $width = getP('width', 200);
 $height = getP('height', 200);
-
 $xMin = getP('xMin', -2);
 $xMax = getP('xMax', 2);
 $yMin = getP('yMin', -2);
 $yMax = getP('yMax', 2);
+$frameRate = getP('frameRate', 1);
+$duration = getP("duration", 1);
 
 $chart = new Chart($width, $height);
 $chart->setRanges($xMin, $xMax, $yMin, $yMax);
 //$chart->setCenter(200, $height/2);
-//$chart->printTime = true;
 
+
+$chart->printTime = getP("printTime", 0);
+
+$chart->framePerSecond = $frameRate;
+$chart->frameCount = $duration * $frameRate;
 $class = getP('class', Logistic::class);
 $algo = new $class;
 
