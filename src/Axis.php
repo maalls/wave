@@ -6,7 +6,7 @@ class Axis {
     public $angle = 0;
     public $color = null;
     public $pixelPerUnit; // pixel per unit
-    public $center; // in pixel
+    public $center; // in unit
 
     public $unit = 1; // we will assume 1m
     public $min; // in unit;
@@ -49,7 +49,7 @@ class Axis {
     }
 
     public function transformY($x) {
-        return -$x*sin($this->angle);
+        return $x*sin($this->angle);
     }
 
 }

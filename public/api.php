@@ -16,11 +16,17 @@ $yMin = getP('yMin', -2);
 $yMax = getP('yMax', 2);
 $zMin = getP("zMin", -1);
 $zMax = getP("zMax", 1);
+
+$xAngle = getP("xAngle", 0);
+$yAngle = getP("yAngle", pi()/2);
+$zAngle = getP("zAngle", 0);
 $frameRate = getP('frameRate', 1);
 $duration = getP("duration", 1);
 
 $chart = new Chart($width, $height);
 $chart->setRanges($xMin, $xMax, $yMin, $yMax, $zMin, $zMax);
+
+$chart->setAngles([$xAngle, $yAngle, $zAngle]);
 //$chart->setCenter(200, $height/2);
 
 

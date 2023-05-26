@@ -14,17 +14,21 @@ $config = [
             'name' => "Logistic",
 
             'parameters' => [
-                'xMin' => 0,
+                'xMin' => -4,
                 'xMax' => 4,
-                'yMin' => 0,
-                'yMax' => 1,
-                'zMin' => 0,
-                'zMax' => 1,
+                "xAngle" => 0,
+                'yMin' => -4,
+                'yMax' => 4,
+                'yAngle' => pi()/2,
+                'zMin' => -4,
+                'zMax' => 4,
+                'zAngle' => 0,
                 'width' => 300,
                 'height' => 300,
                 'class' => Logistic::class,
                 'frameRate' => 1,
-                'duration' => 1
+                'duration' => 1,
+                'printTime' => 1
             ]
         ],
         [
@@ -33,15 +37,19 @@ $config = [
             'parameters' => [
                 'xMin' => -2,
                 'xMax' => 1,
+                'xAngle' => 0,
                 'yMin' => -1,
                 'yMax' => 1,
+                'yAngle' => pi()/2,
                 'zMin' => -1,
                 'zMax' => 1,
+                'zAngle' => 0,
                 'width' => 600,
                 'height' => 300,
                 'class' => Mandelbrot::class,
                 'frameRate' => 1,
-                'duration' => 1
+                'duration' => 1,
+                'printTime' => 1
             ]
         ],
         [
@@ -50,15 +58,19 @@ $config = [
             'parameters' => [
                 'xMin' => -2,
                 'xMax' => 2,
+                'xAngle' => 0,
                 'yMin' => -2,
                 'yMax' => 2,
+                'yAngle' => pi()/2,
                 'zMin' => -2,
                 'zMax' => 2,
+                'zAngle' => 0,
                 'width' => 600,
                 'height' => 300,
                 'class' => Cos::class,
                 'frameRate' => 1,
-                'duration' => 1
+                'duration' => 1,
+                'printTime' => 1
             ]
         ],
         [
@@ -67,15 +79,19 @@ $config = [
             'parameters' => [
                 'xMin' => -2,
                 'xMax' => 2,
+                'xAngle' => 0,
                 'yMin' => -2,
                 'yMax' => 2,
+                'yAngle' => pi()/4,
                 'zMin' => -2,
                 'zMax' => 2,
+                'zAngle' => pi()/2,
                 'width' => 600,
                 'height' => 300,
                 'class' => Spiral::class,
                 'frameRate' => 1,
-                'duration' => 1
+                'duration' => 1,
+                'printTime' => 1
             ]
         ],
         [
@@ -84,15 +100,19 @@ $config = [
             'parameters' => [
                 'xMin' => -2,
                 'xMax' => 2,
+                'xAngle' => 0,
                 'yMin' => -2,
                 'yMax' => 2,
+                'yAngle' => -pi()/4,
                 'zMin' => -2,
                 'zMax' => 2,
+                'zAngle' => pi()/2,
                 'width' => 600,
                 'height' => 600,
                 'class' => Cube::class,
                 'frameRate' => 1,
-                'duration' => 1
+                'duration' => 1,
+                'printTime' => 1
             ]
         ],
         [
@@ -101,15 +121,19 @@ $config = [
             'parameters' => [
                 'xMin' => -2,
                 'xMax' => 2,
+                'xAngle' => 0,
                 'yMin' => -2,
                 'yMax' => 2,
+                'yAngle' => -pi()/4,
                 'zMin' => -2,
                 'zMax' => 2,
+                'zAngle' => pi()/2,
                 'width' => 600,
                 'height' => 600,
                 'class' => Physics::class,
                 'frameRate' => 10,
-                'duration' => 10
+                'duration' => 10,
+                'printTime' => 1
             ]
         ]
     ]

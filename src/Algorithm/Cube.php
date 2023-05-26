@@ -12,28 +12,15 @@ class Cube implements Drawing {
     private $particle;
 
     public function __construct() {
-        $this->position = 1;
-        $this->speed = 0;
-        $this->lastTime = 0;
+
     
     }
     public function draw(Chart $chart, $t) {
 
-        // assuming gravity is constant
-        $a = -0.1;
-
-        $frameCount = $chart->frameCount / $chart->framePerSecond;
-        $deltaT = 1/$chart->framePerSecond;
-        $this->speed += $a * $deltaT;
-        $this->position += $this->speed * $deltaT;
-
-
-        
-
-        
-        $this->drawCube($chart, 0, 0, 0, 1, 2, "#000000");
+        $this->drawCube($chart, 0, 0, 0, 1, 2, "#FF0000");
         $this->drawCube($chart, 0, 0, $this->position, 0.05, 0.05, "#000000");
         $this->drawCube($chart, 0, 0, -1, 0.05, 0.05, "#FF00FF");
+        $this->drawCube($chart, 0, 0, 1, 0.05, 0.05, "#FF00FF");
     }
 
     public function drawCube($chart, $x, $y, $z, $width, $height, $color) {

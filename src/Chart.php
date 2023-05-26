@@ -341,8 +341,10 @@ class Chart
         $bbox = imagettfbbox(8, 0, $fontPath, $text);
         $textHeight = $bbox[0] - $bbox[7];
         $textWidth = $bbox[2] - $bbox[0];
-        imagefilledrectangle($this->image, $left, $top, $left + $textWidth, $top + $textHeight, $this->background);
-        imagettftext($this->image, 8, 0, $left, $top, $this->black, $fontPath, $text);
+        $this->setHexColor('#DDDDDD');
+        $bordor = 2;
+        imagefilledrectangle($this->image, $left - $bordor, $top - $bordor, $left + $textWidth + $bordor, $top + $textHeight + $bordor, $this->color);
+        imagettftext($this->image, 8, 0, $left, $top + $textHeight, $this->black, $fontPath, $text);
 
 
     }
@@ -387,7 +389,7 @@ class Chart
             }
 
             if (is_a($function, Func::class)) {
-
+                
                 list($xx, $xy) = $this->axes[0]->transform($x);
                 list($yx, $yy) = [0,0];
      
@@ -398,8 +400,6 @@ class Chart
                     $yy +=$ly;
                     
                 }
-
-                
                 $this->setHexColor($this->axes[$k+1]->color);
                 $px = round($this->xToP($xx + $yx));
                 $py = round($this->yToP(($yy + $xy)));
@@ -422,16 +422,11 @@ class Chart
                 if (true || is_a($function, Surjectif::class)) {
 
                     foreach ($result as $k => $y) {
-                        //echo $x . ' :' . $this->xToP($x) . ' ';
-                        if (is_a($function, Surjectif::class)) {
-                            $axeKey = 1;
-                        } else {
-                            $axeKey = $k + 1;
-                        }
-                        list($yx, $yy) = $this->axes[$axeKey]->transform($y);
-                        $this->setHexColor($this->axes[$axeKey]->color);
-                        imagesetpixel($this->image, round($this->xToP($xx + $yx)), round($this->yToP(-($yy + $xy))), $this->color);
 
+                        $p = [$x, $y, 0];
+                        $p = $this->transform($p);
+                        imagesetpixel($this->image, $p[0], $p[1], $this->color);
+                        
                     }
                 }
             }
@@ -470,9 +465,14 @@ class Chart
         $tickSize = 5;
         foreach ($this->axes as $k => $axis) {
 
-            
-            $start = $this->toP($axis->transform($this->pToX(0)));
-            $end = $this->toP($axis->transform($this->pToX($this->width)));
+            $min = [0,0,0];
+            $min[$k] = $axis->min;
+
+            $max = [0,0,0];
+            $max[$k] = $axis->max;
+            $start = $this->transform($min);
+            $end = $this->transform($max);
+            //echo "$k => ($start[0],$start[1]), ($end[0],$end[1])<br/>   ";
             $this->setHexColor($axis->color);
             imageline($this->image, $start[0], $start[1], $end[0], $end[1], $this->color);
             
@@ -489,30 +489,10 @@ class Chart
             
 
         }
+        
 
-        /*imageline($this->image, 0, $this->axes[1]->center - round($this->axes[0]->cent*tan($angle)), $this->width, $this->axes[1]->center + round(($this->width - $this->axes[0]->center)*tan($angle)), $this->axisColor);
+        
 
-        imageline($this->image, 0, $this->axes[1]->center, $this->width, $this->axes[1]->center, $this->axisColor);
-        imageline($this->image, $this->axes[0]->center, 0, $this->axes[0]->center, $this->height, $this->axisColor);
-
-        for ($i = $this->axes[0]->center - $this->axes[0]->pixelPerUnit * floor($this->axes[0]->center / $this->axes[0]->pixelPerUnit); $i <= $this->width; $i += $this->axes[0]->pixelPerUnit) {
-
-            $ia = round($this->xToP($this->pToX($i) * cos($angle)));
-
-            $ya = round($this->yToP(-$this->pToX($i) * sin($angle)));
-            
-            imageline($this->image, $ia, $ya - $tickSize, $ia, $ya + $tickSize, $this->axisColor);
-        }
-        */
-
-        /*for ($i = $this->axes[0]->center - $this->axes[0]->pixelPerUnit * floor($this->axes[0]->center / $this->axes[0]->pixelPerUnit); $i <= $this->width; $i += $this->axes[0]->pixelPerUnit) {
-            imageline($this->image, round($i), $this->axes[1]->center - $tickSize, round($i), $this->axes[1]->center + $tickSize, $this->axisColor);
-        }
-
-
-        for ($i = $this->axes[1]->center + $this->axes[1]->pixelPerUnit * floor($this->axes[1]->center / $this->axes[1]->pixelPerUnit); $i >= 0; $i -= $this->axes[1]->pixelPerUnit) {
-            imageline($this->image, round($this->axes[0]->center - $tickSize), round($i), round($this->axes[0]->center + $tickSize), round($i), $this->axisColor);
-        }*/
     }
 
     public function drawUnits() {
@@ -528,6 +508,12 @@ class Chart
             $x = [0,0,0];
             $x[$k] = 1;
             $this->drawLine([0,0,0], $x);
+
+            $x[$k] = 0.5;
+
+            $p = $this->transform($x);
+            $names = ['x', 'y', 'z'];
+            $this->drawText($names[$k], $p[1], $p[0]);
         }
 
     }
@@ -544,11 +530,6 @@ class Chart
                 
 
     }
-
-    
-
-
-
 
     public function setHexColor($hex)
     {
@@ -571,6 +552,12 @@ class Chart
         $this->axes[1]->center = round($centerY);
     }
 
+    public function setAngles($angles) {
+        foreach($this->axes as $k => $axe) {
+            $axe->angle = $angles[$k];
+        }
+    }
+
     public function setRanges($xMin, $xMax, $yMin, $yMax, $zMin, $zMax)
     {
 
@@ -588,12 +575,11 @@ class Chart
             $axe->range = $max - $min; 
             //echo "$axe->range, $min, $max - ";
             $axe->pixelPerUnit = $length / $axe->range;
-
+            $axe->center = -$min/($axe->range) * $length;
+            //echo "$k = ($xMin, $xMax, $yMin, $yMax, $axe->center)\n";
             
-
-            $axe->center = $axe->toPixel(($this->axes[0]->max + $this->axes[0]->min / 2));
-
         }
+        
         
 
     }
@@ -711,7 +697,7 @@ class Chart
             list($tr1, $tr2) = $axe->transform($x[$k]);
             $px += $tr1;
             $py += $tr2;
-
+            //echo "- $k => ($px, $px)<br/>";
 
         }
             
@@ -730,7 +716,7 @@ class Chart
 
     public function yToP($y)
     {
-        return $this->axes[1]->toPixel($y);
+        return $this->height - $this->axes[1]->toPixel($y);
         //return ($this->axes[1]->center - $y * $this->axes[1]->pixelPerUnit);
     }   
 

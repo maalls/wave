@@ -160,20 +160,13 @@ aj.onreadystatechange = function () {
 
         let config = rsp;
 
-        parameters = {
-            width: 300,
-            height: 200,
-            xMin: -2,
-            xMax: 1,
-            yMin: -1,
-            yMax: 1,
-            zMin: -1,
-            zMax: 1,
-            frameRate: 1,
-            duration: 1,
-            printTime: 0
-        }
+        parameters = {};
 
+        let template = config.algoritms[0].parameters;
+        for(param in template) {
+            parameters[param] = null;
+        }
+        console.log('u', {...parameters});
         for (let pair of new URLSearchParams(window.location.search.substring(1)).entries()) {
             parameters[pair[0]] = pair[1];
         }
@@ -216,16 +209,21 @@ aj.onreadystatechange = function () {
         });
 
         algoSelect.onchange = e => {
-            console.log("change", config);
+            console.log("change", config, config.algoritms[algoSelect.value]);
             config.algoritm = config.algoritms[algoSelect.value];
             parameters = config.algoritm.parameters;
+            console.log("parameters", parameters);
 
-            for(parameter in parameters) {
+            for(let parameter in parameters) {
+                
                 let input = controller.getElementsByClassName(parameter);
+                console.log("paRAM", parameter);
+                console.log("input", input);
                 if(input.length) {
-                    input.value = parameters[parameter];
+                    input[0].value = parameters[parameter];
                 }
             }
+            
 
             requestImage(parameters);
         }
@@ -346,18 +344,16 @@ aj.onreadystatechange = function () {
 
         }
         interface.appendChild(selector);
+ 
+        for(let parameter in parameters) {
 
-        createParameterInput('frameRate', parameters, controller);
-        createParameterInput('duration', parameters, controller);
-        createParameterInput('width', parameters, controller);
-        createParameterInput('height', parameters, controller);
-        createParameterInput('xMin', parameters, controller);
-        createParameterInput('xMax', parameters, controller);
-        createParameterInput('yMin', parameters, controller);
-        createParameterInput('yMax', parameters, controller);
-        createParameterInput('zMin', parameters, controller);
-        createParameterInput('zMax', parameters, controller);
-        createParameterInput('printTime', parameters, controller);
+            if(['class', 'name'].includes(parameter)) {
+                continue;
+            }
+            createParameterInput(parameter, parameters, controller);
+        }
+        
+        
     }
 
 
