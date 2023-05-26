@@ -18,17 +18,6 @@ class Chart
 
 
     public $axes;
-    public $xUnit;
-    public $yUnit;
-    public $xMin;
-    public $xMax;
-    public $yMin;
-    public $yMax;
-    public $xRange;
-    public $yRange;
-
-    public $centerX;
-    public $centerY;
 
     public $color;
 
@@ -37,9 +26,6 @@ class Chart
     public $background;
     public $axisColor;
 
-    public $unit = 40;
-
-    public $timeUnit = 16;
 
     public $frameCount = 100;
     public $framePerSecond = 10;
@@ -65,8 +51,6 @@ class Chart
 
     public $startRanges;
 
-    public $angle;
-
     public function __construct($width, $height)
     {
 
@@ -78,7 +62,7 @@ class Chart
             new Axis(pi()/2, "#00FFFF"),
         ];
         //$this->setCenter(round($this->width/2), round($height / 2));
-        $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2);
+        $this->setRanges(-$width / 2, $width / 2, -$height / 2, $height / 2, -$height / 2, $height / 2);
 
         $this->image = imagecreatetruecolor($this->width, $this->height);
         imageantialias($this->image, true);
@@ -88,7 +72,7 @@ class Chart
         $this->background = imagecolorallocate($this->image, 255, 255, 255);
         $this->axisColor = imagecolorallocate($this->image, 0, 0, 255);
 
-        $this->angle = 0;
+        
         $this->init();
 
 
@@ -203,10 +187,10 @@ class Chart
                         case 'zoom2':
 
                             $framePerDuration = $this->framePerSecond * $motion[5];
-                            $xMinStep = ($motion[1] - $this->xMin) / $framePerDuration;
-                            $xMaxStep = ($motion[2] - $this->xMax) / $framePerDuration;
-                            $yMinStep = ($motion[3] - $this->yMin) / $framePerDuration;
-                            $yMaxStep = ($motion[4] - $this->yMax) / $framePerDuration;
+                            $xMinStep = ($motion[1] - $this->axes[0]->min) / $framePerDuration;
+                            $xMaxStep = ($motion[2] - $this->axes[0]->max) / $framePerDuration;
+                            $yMinStep = ($motion[3] - $this->axes[1]->min) / $framePerDuration;
+                            $yMaxStep = ($motion[4] - $this->axes[1]->max) / $framePerDuration;
                             $lastFrame = $t + $framePerDuration - 1;
 
                             break;
@@ -221,8 +205,8 @@ class Chart
                             $xMinStep = $xMaxStep = $distanceX / $framePerDuration;
                             $yMinStep = $yMaxStep = $distanceY / $framePerDuration;
 
-                            $targetRangeX = $this->xRange / $motion[3] - $this->xRange - $distanceX;
-                            $targetRangeY = $this->yRange / $motion[3] - $this->yRange - $distanceY;
+                            $targetRangeX = $this->axes[0]->range / $motion[3] - $this->axes[0]->range - $distanceX;
+                            $targetRangeY = $this->axes[1]->range / $motion[3] - $this->axes[1]->range - $distanceY;
 
                             $xMaxStep += $targetRangeX / $framePerDuration / 2;
                             $yMaxStep += $targetRangeY / $framePerDuration / 2;
@@ -258,7 +242,7 @@ class Chart
 
 
         }
-        $this->startRanges = [$this->xMin, $this->xMax, $this->yMin, $this->yMax];
+        $this->startRanges = [$this->axes[0]->min, $this->axes[0]->max, $this->axes[1]->min, $this->axes[1]->max];
 
         if ($this->multiThread) {
             $multiThread = new MultiThread();
@@ -299,8 +283,8 @@ class Chart
 
         if ($this->transforms && $this->transforms[$t]) {
             list($xMinStep, $xMaxStep, $yMinStep, $yMaxStep, $angleStep) = $this->transforms[$t];
-            $this->setRanges($this->startRanges[0] + $xMinStep, $this->startRanges[1] + $xMaxStep, $this->startRanges[2] + $yMinStep, $this->startRanges[3] + $yMaxStep);
-            $this->angle = $angleStep;
+            $this->setRanges($this->startRanges[0] + $xMinStep, $this->startRanges[1] + $xMaxStep, $this->startRanges[2] + $yMinStep, $this->startRanges[3] + $yMaxStep, $this->startRanges[2] + $yMinStep, $this->startRanges[3] + $yMaxStep);
+            
         }
 
         $scaledT = $t / $this->framePerSecond;
@@ -331,40 +315,48 @@ class Chart
 
         if ($this->printTime) {
             $time = round($t / $this->framePerSecond, 2);
-            $fontPath = __DIR__ . '/font/Helvetica.ttf';
+            
             $text = str_pad(number_format($time, 1), 3, " ", STR_PAD_LEFT) . " sec " . str_pad($t + 1, strlen($this->frameCount), ' ', STR_PAD_LEFT) . "/" . $this->frameCount;
-
-            if (true) {
-
-                $text .= " d($this->width, $this->height)  c($this->centerX, $this->centerY) mm[(" . round($this->xMin, 1) . "," . round($this->xMax, 1) . '),(' . round($this->yMin, 1) . ',' . round($this->yMax, 1) . ")] u(" . round($this->xUnit, 1) . ',' . round($this->yUnit, 1) . ") r(" . round($this->xRange) . ',' . round($this->yRange) . ")";
-
+            $text .= " d($this->width, $this->height)  c(".$this->axes[0]->center.", ".$this->axes[1]->center.") mm[(" . round($this->axes[0]->min, 1) . "," . round($this->axes[0]->max, 1) . '),(' . round($this->axes[1]->min, 1) . ',' . round($this->axes[1]->max, 1) . ")] u(" . round($this->axes[0]->pixelPerUnit, 1) . ',' . round($this->axes[1]->pixelPerUnit, 1) . ") r(" . round($this->axes[0]->range) . ',' . round($this->axes[1]->range) . ")";
+            $this->drawText($text, $this->height - 20, 0);
+            $units = [];
+            $centers = [];
+            foreach($this->axes as $axe) {
+                $units[] = $axe->pixelPerUnit;
+                $centers[] = $axe->center;
             }
-
-            $bbox = imagettfbbox(8, 0, $fontPath, $text);
-
-            $textHeight = $bbox[0] - $bbox[7] + 2;
-            $textWidth = $bbox[2] - $bbox[0] + 2;
-            imagefilledrectangle($this->image, 0, $this->height - $textHeight - 2, $textWidth, $this->height, $this->background);
-            imagettftext($this->image, 8, 0, 0, $this->height - 2, $this->black, $fontPath, $text);
-
+            $this->drawText("unit:(" . implode(',',$units) . ') center: (' . implode(",", $centers) . ')', $this->height - 10);
         }
         imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
+        $this->drawUnits();
         imagepng($this->image, $frame);
+        
 
         return $frame;
 
     }
 
+    public function drawText($text, $top, $left = 0) {
+        $fontPath = __DIR__ . '/font/Helvetica.ttf';
+        $bbox = imagettfbbox(8, 0, $fontPath, $text);
+        $textHeight = $bbox[0] - $bbox[7];
+        $textWidth = $bbox[2] - $bbox[0];
+        imagefilledrectangle($this->image, $left, $top, $left + $textWidth, $top + $textHeight, $this->background);
+        imagettftext($this->image, 8, 0, $left, $top, $this->black, $fontPath, $text);
+
+
+    }
+
     public function drawXY($function, $t)
     {
-        //echo "$this->centerX, $this->centerY" . PHP_EOL;
+        //echo "$this->axes[0]->cent, $this->axes[1]->center" . PHP_EOL;
         for ($i = 0; $i < $this->width; $i++) {
 
             for ($j = 0; $j < $this->height; $j++) {
 
 
-                $x = ($i - $this->centerX) / $this->xUnit;
-                $y = ($this->centerY - $j) / $this->yUnit;
+                $x = ($i - $this->axes[0]->center) / $this->axes[0]->pixelPerUnit;
+                $y = ($this->axes[1]->center - $j) / $this->axes[1]->pixelPerUnit;
                 $hex = $this->executeXY($function, $x, $y, $t);
                 $this->setHexColor($hex);
                 imagesetpixel($this->image, $i, $j, $this->color);
@@ -385,7 +377,7 @@ class Chart
         }
 
         $prevX = $prevY = null;
-        for ($x = $this->xMin; $x < $this->xMax; $x += 1 / $this->xUnit) {
+        for ($x = $this->axes[0]->min; $x < $this->axes[0]->max; $x += 1 / $this->axes[0]->pixelPerUnit) {
 
 
             $result = $this->executeX($function, $x, $t);
@@ -486,7 +478,7 @@ class Chart
             
            
             $this->setHexColor("#FF0000");
-            for($x = $this->xMin; $x <= $this->xMax; $x += 1) {
+            for($x = $this->axes[0]->min; $x <= $this->axes[0]->max; $x += 1) {
                 //echo $x . "\n";
                 $p = $this->toP($axis->transform($x));
                 //echo $p[0] . ',' . $p[1] . '\n';
@@ -494,14 +486,16 @@ class Chart
                 
             }
 
+            
+
         }
 
-        /*imageline($this->image, 0, $this->centerY - round($this->centerX*tan($angle)), $this->width, $this->centerY + round(($this->width - $this->centerX)*tan($angle)), $this->axisColor);
+        /*imageline($this->image, 0, $this->axes[1]->center - round($this->axes[0]->cent*tan($angle)), $this->width, $this->axes[1]->center + round(($this->width - $this->axes[0]->center)*tan($angle)), $this->axisColor);
 
-        imageline($this->image, 0, $this->centerY, $this->width, $this->centerY, $this->axisColor);
-        imageline($this->image, $this->centerX, 0, $this->centerX, $this->height, $this->axisColor);
+        imageline($this->image, 0, $this->axes[1]->center, $this->width, $this->axes[1]->center, $this->axisColor);
+        imageline($this->image, $this->axes[0]->center, 0, $this->axes[0]->center, $this->height, $this->axisColor);
 
-        for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
+        for ($i = $this->axes[0]->center - $this->axes[0]->pixelPerUnit * floor($this->axes[0]->center / $this->axes[0]->pixelPerUnit); $i <= $this->width; $i += $this->axes[0]->pixelPerUnit) {
 
             $ia = round($this->xToP($this->pToX($i) * cos($angle)));
 
@@ -511,14 +505,31 @@ class Chart
         }
         */
 
-        /*for ($i = $this->centerX - $this->xUnit * floor($this->centerX / $this->xUnit); $i <= $this->width; $i += $this->xUnit) {
-            imageline($this->image, round($i), $this->centerY - $tickSize, round($i), $this->centerY + $tickSize, $this->axisColor);
+        /*for ($i = $this->axes[0]->center - $this->axes[0]->pixelPerUnit * floor($this->axes[0]->center / $this->axes[0]->pixelPerUnit); $i <= $this->width; $i += $this->axes[0]->pixelPerUnit) {
+            imageline($this->image, round($i), $this->axes[1]->center - $tickSize, round($i), $this->axes[1]->center + $tickSize, $this->axisColor);
         }
 
 
-        for ($i = $this->centerY + $this->yUnit * floor($this->centerY / $this->yUnit); $i >= 0; $i -= $this->yUnit) {
-            imageline($this->image, round($this->centerX - $tickSize), round($i), round($this->centerX + $tickSize), round($i), $this->axisColor);
+        for ($i = $this->axes[1]->center + $this->axes[1]->pixelPerUnit * floor($this->axes[1]->center / $this->axes[1]->pixelPerUnit); $i >= 0; $i -= $this->axes[1]->pixelPerUnit) {
+            imageline($this->image, round($this->axes[0]->center - $tickSize), round($i), round($this->axes[0]->center + $tickSize), round($i), $this->axisColor);
         }*/
+    }
+
+    public function drawUnits() {
+
+        foreach($this->axes as $k => $axis) {
+
+            //echo $k;
+            /*list($x0, $y0) = $axis->location(0);
+            list($x1, $y1) = $axis->location(1);
+            $this->setHexColor("#000000");
+            imageline($this->image, $x0, $y0, $x1, $y1, $this->color);
+            */
+            $x = [0,0,0];
+            $x[$k] = 1;
+            $this->drawLine([0,0,0], $x);
+        }
+
     }
 
     public function drawLine($start, $end, $hex = '#000000') {
@@ -533,6 +544,8 @@ class Chart
                 
 
     }
+
+    
 
 
 
@@ -554,44 +567,58 @@ class Chart
 
     public function setCenter($centerX, $centerY)
     {
-        $this->centerX = round($centerX);
-        $this->centerY = round($centerY);
+        $this->axes[0]->center = round($centerX);
+        $this->axes[1]->center = round($centerY);
     }
 
-    public function setRanges($xMin, $xMax, $yMin, $yMax)
+    public function setRanges($xMin, $xMax, $yMin, $yMax, $zMin, $zMax)
     {
-        $this->xMin = $xMin;
-        $this->xMax = $xMax;
-        $this->yMin = $yMin;
-        $this->yMax = $yMax;
-        $this->xRange = $this->xMax - $this->xMin;
-        $this->yRange = $this->yMax - $this->yMin;
-        $this->xUnit = $this->width / $this->xRange;
-        $this->yUnit = $this->height / $this->yRange;
 
+        $ranges = [
+            [$xMin, $xMax, $this->width],
+            [$yMin, $yMax, $this->height],
+            [$zMin, $zMax, $this->height]
+        ];
 
-        $this->centerX = -$this->xMin * $this->xUnit;
-        $this->centerY = $this->height + $this->yMin * $this->yUnit;
+        foreach($this->axes as $k => $axe) {
 
-        //$this->axes[0]->setRange($xMin, $xMax);
-        //$this->axes[1]->setRange($yMin, $yMax);
+            list($min, $max, $length) = $ranges[$k];
+            $axe->min = $min;
+            $axe->max = $max;
+            $axe->range = $max - $min; 
+            //echo "$axe->range, $min, $max - ";
+            $axe->pixelPerUnit = $length / $axe->range;
+
+            
+
+            $axe->center = $axe->toPixel(($this->axes[0]->max + $this->axes[0]->min / 2));
+
+        }
+        
 
     }
 
     public function setUnit($xUnit, $yUnit)
     {
-        $this->xUnit = $xUnit;
-        $this->yUnit = $yUnit;
+        $this->axes[0]->pixelPerUnit = $xUnit;
+        $this->axes[1]->pixelPerUnit = $yUnit;
 
-        $this->xRange = $this->width / $this->xUnit;
-        $this->yRange = $this->height / $this->yUnit;
+        $this->axes[0]->range = $this->width / $this->axes[0]->pixelPerUnit;
+        $this->axes[1]->range = $this->height / $this->axes[1]->pixelPerUnit;
 
-        $this->xMin = -floor($this->centerX / $this->xUnit);
-        $this->xMax = floor(($this->width - $this->centerX) / $this->xUnit);
-        $this->yMin = -floor($this->centerY / $this->yUnit);
-        $this->yMax = ($this->height - $this->centerY) / $this->yUnit;
-        //echo "unit: ($this->xUnit, $this->yUnit), range: ($this->xRange, $this->yRange)" . PHP_EOL;
-        //echo "minmax: ($this->xMin,$this->xMax), ($this->yMin,$this->yMax)" . PHP_EOL;
+        $this->axes[0]->min = -floor($this->axes[0]->center / $this->axes[0]->pixelPerUnit);
+        $this->axes[0]->max = floor(($this->width - $this->axes[0]->center) / $this->axes[0]->pixelPerUnit);
+        $this->axes[1]->min = -floor($this->axes[1]->center / $this->axes[1]->pixelPerUnit);
+        $this->axes[1]->max = ($this->height - $this->axes[1]->center) / $this->axes[1]->pixelPerUnit;
+        //echo "unit: ($this->axes[0]->pixelPerUnit, $this->axes[1]->pixelPerUnit), range: ($this->axes[0]->range, $this->axes[1]->range)" . PHP_EOL;
+    }
+
+    public function setUnits($units, $center = null) {
+
+        foreach($units as $k => $unit) {
+            $this->axes[$k]->pixelPerUnit = $unit;
+        }
+
     }
 
     public function png($file = null)
@@ -625,9 +652,9 @@ class Chart
     public function printParameters()
     {
         echo "dimension: ($this->width, $this->height)" . PHP_EOL;
-        echo "center: ($this->centerX, $this->centerY), unit: ($this->xUnit, $this->yUnit)" . PHP_EOL;
-        echo "minmax: [($this->xMin, $this->xMax), ($this->yMin, $this->yMax)]" . PHP_EOL;
-        echo "range: ($this->xRange, $this->yRange)" . PHP_EOL;
+        echo "center: (" . $this->axes[0]->center . ", " . $this->axes[1]->center . "), unit: (" . $this->axes[0]->pixelPerUnit . ", " . $this->axes[1]->pixelPerUnit . ")" . PHP_EOL;
+        echo "minmax: [(" . $this->axes[0]->min . "," . $this->axes[0]->max . "), (" . $this->axes[1]->min . ", " . $this->axes[1]->max . ")]" . PHP_EOL;
+        echo "range: ($this->axes[0]->range, $this->axes[1]->range)" . PHP_EOL;
     }
 
 
@@ -673,6 +700,7 @@ class Chart
 
     
     public function toP($x) {
+
         return [round($this->xToP($x[0])), round($this->yToP($x[1]))];
     }
     public function transform($x) {
@@ -696,25 +724,26 @@ class Chart
     public function xToP($x)
     {
 
-        return ($x * $this->xUnit + $this->centerX);
+        return $this->axes[0]->toPixel($x);
 
     }
 
     public function yToP($y)
     {
-        return ($this->centerY - $y * $this->yUnit);
-    }
+        return $this->axes[1]->toPixel($y);
+        //return ($this->axes[1]->center - $y * $this->axes[1]->pixelPerUnit);
+    }   
 
     public function pToX($p)
     {
 
-        return ($p - $this->centerX) / $this->xUnit;
+        return ($p - $this->axes[0]->center) / $this->axes[0]->pixelPerUnit;
 
     }
 
     public function pToY($p)
     {
-        return ($this->centerY - $p) / $this->yUnit;
+        return ($this->axes[1]->center - $p) / $this->axes[1]->pixelPerUnit;
     }
 
 

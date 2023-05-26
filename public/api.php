@@ -14,11 +14,13 @@ $xMin = getP('xMin', -2);
 $xMax = getP('xMax', 2);
 $yMin = getP('yMin', -2);
 $yMax = getP('yMax', 2);
+$zMin = getP("zMin", -1);
+$zMax = getP("zMax", 1);
 $frameRate = getP('frameRate', 1);
 $duration = getP("duration", 1);
 
 $chart = new Chart($width, $height);
-$chart->setRanges($xMin, $xMax, $yMin, $yMax);
+$chart->setRanges($xMin, $xMax, $yMin, $yMax, $zMin, $zMax);
 //$chart->setCenter(200, $height/2);
 
 
@@ -32,7 +34,7 @@ $algo = new $class;
 //$algo = new Xtmap();
 $chart->add($algo);
 
-$fParams = [$width, $height, $xMin, $xMax, $yMin, $yMax,];
+$fParams = [$width, $height, $xMin, $xMax, $yMin, $yMax,$zMin, $zMax, $chart->printTime];
 
 if (isset($_GET['zoom'])) {
 
@@ -61,14 +63,16 @@ if(true || !file_exists($dir)) {
 header('Content-Type: application/json; charset=utf-8');
 
 $info = [
-    'centerX' => $chart->centerX,
-    'centerY' => $chart->centerY,
-    'xUnit' => $chart->xUnit,
-    'yUnit' => $chart->yUnit,
+    'centerX' => $chart->axes[0]->center,
+    'centerY' => $chart->axes[1]->center,
+    'xUnit' => $chart->axes[0]->pixelPerUnit,
+    'yUnit' => $chart->axes[1]->pixelPerUnit,
     "xMin" => $xMin,
     "xMax" => $xMax,
     "yMin" => $yMin,
     "yMax" => $yMax,
+    "zMin" => $zMin,
+    "zMax" => $zMax,
     "frames" => $chart->frameCount
 ];
 
