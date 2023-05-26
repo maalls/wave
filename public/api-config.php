@@ -14,11 +14,11 @@ $config = [
             'name' => "Logistic",
 
             'parameters' => [
-                'xMin' => -4,
+                'xMin' => 0,
                 'xMax' => 4,
                 "xAngle" => 0,
-                'yMin' => -4,
-                'yMax' => 4,
+                'yMin' => 0,
+                'yMax' => 1,
                 'yAngle' => pi()/2,
                 'zMin' => -4,
                 'zMax' => 4,

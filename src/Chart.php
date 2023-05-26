@@ -277,9 +277,7 @@ class Chart
 
         $this->init();
 
-        if ($this->showAxes) {
-            $this->drawAxes();
-        }
+        
 
         if ($this->transforms && $this->transforms[$t]) {
             list($xMinStep, $xMaxStep, $yMinStep, $yMaxStep, $angleStep) = $this->transforms[$t];
@@ -328,7 +326,11 @@ class Chart
             $this->drawText("unit:(" . implode(',',$units) . ') center: (' . implode(",", $centers) . ')', $this->height - 10);
         }
         imagefilledrectangle($this->image, $this->width /2 - 1, $this->height/2 - 1, $this->width/2+1, $this->height/2+1, $this->black);
-        $this->drawUnits();
+        if ($this->showAxes) {
+            $this->drawAxes();
+            $this->drawUnits();
+        }
+        
         imagepng($this->image, $frame);
         
 

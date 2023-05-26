@@ -217,8 +217,8 @@ aj.onreadystatechange = function () {
             for(let parameter in parameters) {
                 
                 let input = controller.getElementsByClassName(parameter);
-                console.log("paRAM", parameter);
-                console.log("input", input);
+                //console.log("paRAM", parameter);
+                //console.log("input", input);
                 if(input.length) {
                     input[0].value = parameters[parameter];
                 }
@@ -350,7 +350,7 @@ aj.onreadystatechange = function () {
             if(['class', 'name'].includes(parameter)) {
                 continue;
             }
-            createParameterInput(parameter, parameters, controller);
+            createParameterInput(parameter);
         }
         
         
@@ -361,10 +361,10 @@ aj.onreadystatechange = function () {
 }
 aj.send();
 
-function createParameterInput(name, parameters) {
+function createParameterInput(name) {
 
     let div = createInputWithLabel(name, parameters[name], function (e) {
-        console.log('change param', name, this.value);
+        console.log('change param', name, this.value, {...parameters});
         parameters[name] = this.value;
         requestImage(parameters);
     });
