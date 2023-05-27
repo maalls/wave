@@ -338,6 +338,33 @@ class Chart
 
     }
 
+    private $nextTop = 0;
+    private $nextLeft = 0;
+    private $textHeight = 0;
+    public function drawTextXYZ($xyz, $text) {
+       
+        list($this->nextLeft, $this->nextTop) = $this->transform($xyz);
+        $this->addTextXYZ($text);
+    }
+
+    public function addTextXYZ($text) {
+
+        $fontPath = __DIR__ . '/font/Helvetica.ttf';
+        $left = $this->nextLeft;
+        $top = $this->nextTop;
+        $bbox = imagettfbbox(8, 0, $fontPath, $text);
+        $textHeight = $bbox[0] - $bbox[7];
+        $textWidth = $bbox[2] - $bbox[0];
+        $this->setHexColor('#DDDDDD');
+        $bordor = 2;
+        imagefilledrectangle($this->image, $left - $bordor, $top - $bordor, $left + $textWidth + $bordor, $top + $textHeight + $bordor, $this->color);
+        imagettftext($this->image, 8, 0, $left, $top + $textHeight, $this->black, $fontPath, $text);
+
+        $this->nextLeft = $left;
+        $this->nextTop = $top + $bordor + $textHeight;
+
+    }
+
     public function drawText($text, $top, $left = 0) {
         $fontPath = __DIR__ . '/font/Helvetica.ttf';
         $bbox = imagettfbbox(8, 0, $fontPath, $text);
@@ -732,6 +759,15 @@ class Chart
     public function pToY($p)
     {
         return ($this->axes[1]->center - $p) / $this->axes[1]->pixelPerUnit;
+    }
+
+    public function round($coord, $precision = 0) {
+        $rounded = [];
+        foreach($coord as $x) {
+            $rounded[] = round($x, $precision);
+        }
+
+        return $rounded;
     }
 
 

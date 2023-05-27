@@ -9,22 +9,31 @@ class Physics implements Drawing {
     private $world;
     private $chart;
 
+    private $count;
     public function __construct() {
         $this->world = new World();
 
-        $particle = new Particle([0,0,0.5]);
+        $particle = new Particle([0,0,0.5], [0.01,0,0]);
         $particle->color = '#FF0000';
         $this->world->addParticle($particle);
 
         $earthMass = 5.97219 * pow(10,24);
-        $particle = new Particle([0,0,-0.5]);
+        $particle = new Particle([0,0, -0], [0,0,0],1,10000000);
         $particle->color = "#00FFFF";
         $this->world->addParticle($particle);
 
+        $particle = new Particle([0,0, -1], [0,0,0],1,100);
+        $particle->color = "#00FFFF";
+        $this->world->addParticle($particle);
+
+        $this->count = 0;
     
     }
     public function draw(Chart $chart, $t) {
 
+        $this->count++;
+        $this->log("------------------------------------------");
+        $this->log("it $t $this->count");
         $this->chart = $chart;
         $this->world->timeUnit = 1/$chart->framePerSecond;
         // assuming gravity is constant
@@ -44,8 +53,27 @@ class Physics implements Drawing {
             $this->drawParticle($particle);
         }
 
-        $chart->drawLine($this->world->particles[0]->position, $this->world->particles[1]->position, '#0000FF');
+        $p = $this->world->particles[0];
+
+        $this->drawTextDebug($p);
+        
+        $chart->drawLine($p->position, $this->world->particles[1]->position, '#0000FF');
     }
+
+    public function drawTextDebug($p) {
+
+        $po = $p->position;
+        $po[0] += $po[0] + 0.05 + 0.01;
+        $this->chart->drawTextXYZ([0, -1, -1], 'p:' . round($p->position[2],3) .'m');
+        $this->chart->addTextXYZ('v:' . $this->world->vectorToString($p->speed,3) . 'm/s');
+        $this->chart->addTextXYZ('a:' . round($p->acceleration[2], 3) . 'm/s2');
+
+        $this->log('p:' . round($p->position[2],3) .'m');
+        $this->log('v:' . round($p->speed[2], 3) . 'm/s');
+        $this->log('a:' . round($p->acceleration[2], 3) . 'm/s2');
+    }
+
+    
 
     public function drawParticle($particle) {
 
@@ -80,6 +108,10 @@ class Physics implements Drawing {
         $chart->drawLine([$xf, $yb, $zf], [$xf, $yf, $zf], $color);
         $chart->drawLine([$xb, $yb, $zf], [$xb, $yf, $zf], $color);
 
+    }
+
+    public function log($msg) {
+        //echo $msg . "\n";
     }
 
 }

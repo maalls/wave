@@ -12,9 +12,15 @@
     <meta name="msapplication-TileColor" content="#da532c">
     <meta name="msapplication-config" content="/favicons/browserconfig.xml">
     <meta name="theme-color" content="#ffffff">
+    <style>
+        body.loading input {
+            pointer-events: none;
+        }
+    </style>
 </head>
 
 <body>
+    
 
     <script type="text/javascript" src="/js/main.js"></script>
 

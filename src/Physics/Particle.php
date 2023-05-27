@@ -6,6 +6,8 @@ class Particle {
 
     public $charge;
     public $position;
+
+    public $acceleration;
     public $speed;
 
     public $mass;

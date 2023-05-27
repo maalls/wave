@@ -25,74 +25,120 @@ let player = {
     uri: '',
     frameCount: 0,
     duration: 0,
+
+    timePerFrame: 0,
+    timeWhenLastUpdate: 0,
+    timeFromLastUpdate: 0,
+    frameNumber: 1,
+
+    loadCount: 0,
+
+    images: [],
     replay: false,
     status: 'stopped',
 
+    stepCount: 0,
+    onAnimationEndedCallbacks: [],
+    onAnimationEnded: function(callback) {
+
+        this.onAnimationEndedCallbacks.push(callback);
+
+    },
+
     play: function () {
+
+        this.stepCount = false;
         console.log("play", this.uri, this.frameCount);
         this.status = 'playing';
-        let images = [];
+        this.images = [];
         let loadCount = 0;
-        this.onLoad = (e) => {
-            loadCount++;
-
-            if (loadCount == this.frameCount) {
 
 
-                const totalFrames = this.frameCount;
-                const animationDuration = this.duration;
-                const timePerFrame = animationDuration / totalFrames * 1000;
-
-                console.log('ok', 'time per frame', timePerFrame);
-                let timeWhenLastUpdate = 0;
-                let timeFromLastUpdate;
-                let frameNumber = 1;
-
-                function step(startTime) {
-                    
-                    timeFromLastUpdate = startTime - timeWhenLastUpdate;
-
-                    if (timeWhenLastUpdate == 0 || timeFromLastUpdate > timePerFrame) {
-                        console.log("animate", timeWhenLastUpdate, timeFromLastUpdate);
-                        mainImage.src = images[frameNumber - 1].src;
-                        timeWhenLastUpdate = startTime;
-
-                        if (frameNumber >= totalFrames) {
-                            console.log("end of loop");
-                            frameNumber = 1;
-                            //requestAnimationFrame(step);
-
-                        } else {
-                            frameNumber = frameNumber + 1;
-                            requestAnimationFrame(step);
-                        }
-                    }
-                    else {
-                        requestAnimationFrame(step);
-                    }
-
-
-                }
-
-                requestAnimationFrame(step);
-
-            }
-        }
+        let that = this;
         for (let i = 1; i <= this.frameCount; i++) {
             var image = document.createElement('img');
-            image.onload = this.onLoad;
+            image.addEventListener('load', function (e) {
+                console.log("loaded", loadCount, that.frameCount, this);
+                loadCount++;
+
+                if (loadCount == that.frameCount) {
+
+                    
+                    that.timePerFrame = that.duration / that.frameCount * 1000;
+
+                    console.log('ok', 'time per frame', that.timePerFrame);
+                    that.timeWhenLastUpdate = 0;
+                    that.timeFromLastUpdate;
+                    that.frameNumber = 1;
+
+                    let step =  function (startTime) {
+
+                        //console.log("step status", that.status);
+                        if(that.status == 'paused') {
+                            return;
+                        }
+                        if(that.stepCount !== false) {
+                            //console.log('step', that.stepCount);
+
+                            if(that.stepCount == 0) {
+                                requestAnimationFrame(step);
+                                return;
+                            }
+                            that.stepCount--;
+                                
+                            
+                        }
+                        
+                        that.timeFromLastUpdate = startTime - that.timeWhenLastUpdate;
+
+                        if (that.timeWhenLastUpdate == 0 || that.timeFromLastUpdate > that.timePerFrame) {
+                            console.log("animate", that.timeWhenLastUpdate, that.timeFromLastUpdate);
+                            mainImage.src = that.images[that.frameNumber - 1].src;
+                            that.timeWhenLastUpdate = startTime;
+
+                            if (that.frameNumber >= that.frameCount) {
+                                console.log("end of loop");
+                                that.frameNumber = 1;
+                                mainImage.src = that.images[1].src;
+                                that.status = 'stopped';
+                                that.onAnimationEndedCallbacks.forEach(e => {
+                                    e(that);
+                                });
+                                //requestAnimationFrame(step);
+
+                            } else {
+                                that.frameNumber = that.frameNumber + 1;
+                                requestAnimationFrame(step);
+                            }
+                        }
+                        else {
+                            requestAnimationFrame(step);
+                        }
+
+
+                    }
+                    requestAnimationFrame(step);
+
+                }
+            });
             image.src = this.uri + '/' + i + ".png";
-            images.push(image);
+            this.images.push(image);
         }
 
 
-    }
-}
+    },
 
+    resume: function() {
+
+    }
+
+
+}
 
 
 function requestImage(parameters, callback) {
     console.log("pushing state", { ...parameters });
+    document.body.classList.add("loading");
     //player.status = 'stop';
     window.history.replaceState(null, null, "?" + new URLSearchParams(parameters).toString());
 
@@ -112,8 +158,8 @@ function requestImage(parameters, callback) {
             player.uri = '/' + rsp.dir;
             player.frameCount = rsp.info.frames;
             player.duration = parameters.duration;
-            player.play();
-            //mainImage.src = '/' + rsp.dir + "/1.png";
+            //player.play();
+            mainImage.src = '/' + rsp.dir + "/1.png";
             dataset = rsp.info;
             parameters.xMin = rsp.info.xMin;
             parameters.xMax = rsp.info.xMax;
@@ -124,6 +170,7 @@ function requestImage(parameters, callback) {
             if (callback) {
                 callback();
             }
+            document.body.classList.remove("loading");
         }
     }
     // Sending our request
@@ -163,10 +210,10 @@ aj.onreadystatechange = function () {
         parameters = {};
 
         let template = config.algoritms[0].parameters;
-        for(param in template) {
+        for (param in template) {
             parameters[param] = null;
         }
-        console.log('u', {...parameters});
+        console.log('u', { ...parameters });
         for (let pair of new URLSearchParams(window.location.search.substring(1)).entries()) {
             parameters[pair[0]] = pair[1];
         }
@@ -189,7 +236,7 @@ aj.onreadystatechange = function () {
         requestImage(parameters);
 
         mainImage.style.width = '100%';
-        
+
         var backButton = document.createElement("button");
         controller.style.position = "absolute";
         controller.style.top = '10px';
@@ -214,23 +261,23 @@ aj.onreadystatechange = function () {
             parameters = config.algoritm.parameters;
             console.log("parameters", parameters);
 
-            for(let parameter in parameters) {
-                
+            for (let parameter in parameters) {
+
                 let input = controller.getElementsByClassName(parameter);
                 //console.log("paRAM", parameter);
                 //console.log("input", input);
-                if(input.length) {
+                if (input.length) {
                     input[0].value = parameters[parameter];
                 }
             }
-            
+
 
             requestImage(parameters);
         }
 
         controller.appendChild(algoSelect);
 
-        backButton.onclick = function(e) {
+        backButton.onclick = function (e) {
             console.log("back");
             var parameters = imageHistory.pop();
             if (imageHistory.length == 0) {
@@ -250,21 +297,64 @@ aj.onreadystatechange = function () {
 
         var interface = document.createElement("div");
         interface.appendChild(mainImage);
+
+        let playerController = document.createElement("div");
+        interface.appendChild(playerController);
         interface.appendChild(controller);
 
 
         document.body.appendChild(interface);
 
-        let replayButton = document.createElement("button");
-        replayButton.innerHTML = 'replay';
-        replayButton.onclick = function (e) {
 
-            player.replay = true;
-            player.play();
 
+        let resetButton = createButton("reset", function(e) {
+
+            player.frameNumber = 1;
+
+        });
+        let playButton = createButton(player.status == 'playing' ? 'pause' : 'play', function(e) {
+            
+            if(player.status == 'playing') {
+
+                player.status = 'paused';
+                this.innerHTML = 'resume';
+
+            }
+            else {
+                this.innerHTML = 'pause';
+                player.play();
+            }
+        });
+
+        player.onAnimationEnded(function(){
+
+            playButton.innerHTML = 'start';
+            
+        });
+
+        let stepButton = createButton('step', function(e) {    
+            if(player.status == 'stopped') {
+                player.play();
+            }
+            player.stepCount = 1;
+        });
+
+        let backStepButton = createButton('back', function(e) {    
+            if(player.status == 'stopped') {
+                player.play();
+            }
+            player.frameNumber = Math.max(1, player.frameNumber - 2);
+            player.stepCount = 1;
+        });
+        function createButton(label, onclick) {
+            let button = document.createElement('button');
+            button.innerHTML = label;
+            button.onclick = onclick;
+            playerController.appendChild(button);
+            return button;
         }
 
-        controller.appendChild(replayButton);
+        
 
         selector = document.createElement("div");
 
@@ -344,16 +434,16 @@ aj.onreadystatechange = function () {
 
         }
         interface.appendChild(selector);
- 
-        for(let parameter in parameters) {
 
-            if(['class', 'name'].includes(parameter)) {
+        for (let parameter in parameters) {
+
+            if (['class', 'name'].includes(parameter)) {
                 continue;
             }
             createParameterInput(parameter);
         }
-        
-        
+
+
     }
 
 
@@ -364,7 +454,7 @@ aj.send();
 function createParameterInput(name) {
 
     let div = createInputWithLabel(name, parameters[name], function (e) {
-        console.log('change param', name, this.value, {...parameters});
+        console.log('change param', name, this.value, { ...parameters });
         parameters[name] = this.value;
         requestImage(parameters);
     });
@@ -380,6 +470,7 @@ function createInputWithLabel(label, value, onChange) {
 
     labelDom = document.createElement("label");
     labelDom.innerHTML = label;
+    label.width = '10px';
     input = document.createElement("input");
     input.classList.add(label);
     input.value = value;
