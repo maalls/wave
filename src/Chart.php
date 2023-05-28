@@ -27,8 +27,8 @@ class Chart
     public $axisColor;
 
 
-    public $frameCount = 100;
-    public $framePerSecond = 10;
+    public $frameCount = 1;
+    public $framePerSecond = 1;
     public $functions = [];
 
     public $hexCache = [];
@@ -251,7 +251,7 @@ class Chart
         } else {
             for ($t = 0; $t < $this->frameCount; $t++) {
 
-                $frame = $this->drawT($t);
+                $frames[] = $this->drawT($t);
 
             }
         }
@@ -260,12 +260,17 @@ class Chart
         if ($this->frameCount > 1) {
 
             if (!is_dir($file)) {
-                // todo
-                //$anim = new AnimGif();
-                //$anim->create($frames, $durations);
-                //$anim->save($file);
+                
+                $anim = new AnimGif();
+                $anim->create($frames, $durations);
+                $anim->save($file);
             }
 
+        }
+        else {
+            if(!is_dir($file)) {
+                rename($frames[0], $file);
+            }
         }
 
     }
@@ -381,20 +386,51 @@ class Chart
     public function drawXY($function, $t)
     {
         //echo "$this->axes[0]->cent, $this->axes[1]->center" . PHP_EOL;
-        for ($i = 0; $i < $this->width; $i++) {
+        
+        if(is_a($function, Func::class)) {
 
-            for ($j = 0; $j < $this->height; $j++) {
+            
+            $axe = $this->axes[0];
+            $this->setHexColor('#000000');
+            for($x = $axe->min; $x < $axe->max; $x += 1/$axe->pixelPerUnit) {
 
+                
+                $yAxe = $this->axes[1];
+                for($y = $yAxe->min; $y < $yAxe->max; $y += 1/ $yAxe->pixelPerUnit) {
+                    
+                    $result = $function->map($x, $y, $t);
+                    
+                    if(!is_array($result)) {
+                        $result = [$result];
+                    }
+                    foreach($result as $z) {
 
-                $x = ($i - $this->axes[0]->center) / $this->axes[0]->pixelPerUnit;
-                $y = ($this->axes[1]->center - $j) / $this->axes[1]->pixelPerUnit;
-                $hex = $this->executeXY($function, $x, $y, $t);
-                $this->setHexColor($hex);
-                imagesetpixel($this->image, $i, $j, $this->color);
-
+                        $p = $this->transform([$x, $y, $z]);
+                        
+                        imagesetpixel($this->image, $p[0], $p[1], $this->color);
+                        
+                    }
+                     
+                }
             }
-
         }
+        else {
+            for ($i = 0; $i < $this->width; $i++) {
+
+                for ($j = 0; $j < $this->height; $j++) {
+    
+                    $x = ($i - $this->axes[0]->center) / $this->axes[0]->pixelPerUnit;
+                    $y = ($this->axes[1]->center - $j) / $this->axes[1]->pixelPerUnit;
+                    $hex = $this->executeXY($function, $x, $y, $t);
+                    $this->setHexColor($hex);
+                    imagesetpixel($this->image, $i, $j, $this->color);
+    
+                }
+    
+            }
+        }
+
+        
 
     }
 
@@ -418,46 +454,41 @@ class Chart
             }
 
             if (is_a($function, Func::class)) {
-                
-                list($xx, $xy) = $this->axes[0]->transform($x);
-                list($yx, $yy) = [0,0];
-     
-                foreach($result as $k => $y) {
-                    //echo "($x, $y) => ";
-                    list($lx, $ly) = $this->axes[$k+1]->transform($y);
-                    $yx +=$lx;
-                    $yy +=$ly;
-                    
-                }
-                $this->setHexColor($this->axes[$k+1]->color);
-                $px = round($this->xToP($xx + $yx));
-                $py = round($this->yToP(($yy + $xy)));
+
+                $p = $this->transform([$x, $result[0], $result[1]]);
+                $this->setHexColor('#000000');
+
                 if($prevX == null) {
-                    imagesetpixel($this->image, $px, $py, $this->color);
+                    imagesetpixel($this->image, $p[0], $p[0], $this->color);
 
                 }
                 else {
-                    imageline($this->image, $prevX, $prevY, $px, $py, $this->color);
+                    imageline($this->image, $prevX, $prevY, $p[0], $p[1], $this->color);
                 }
-                $prevX = $px;
-                $prevY = $py;
+                $prevX = $p[0];
+                $prevY = $p[1];
 
 
             } else {
 
-                
-                list($xx, $xy) = $this->axes[0]->transform($x);
+                foreach ($result as $k => $y) {
 
-                if (true || is_a($function, Surjectif::class)) {
+                    $p = [$x, $y, 0];
+                    $p = $this->transform($p);
 
-                    foreach ($result as $k => $y) {
+                    if($prevX == null) {
 
-                        $p = [$x, $y, 0];
-                        $p = $this->transform($p);
                         imagesetpixel($this->image, $p[0], $p[1], $this->color);
-                        
+
                     }
+                    else {
+                        imageline($this->image, $prevX, $prevY, $p[0], $p[1], $this->color);
+                    }
+                    $prevX = $p[0];
+                    $prevY = $p[1];
+                    
                 }
+                
             }
 
         }

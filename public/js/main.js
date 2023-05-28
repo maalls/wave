@@ -98,8 +98,10 @@ let player = {
 
                             if (that.frameNumber >= that.frameCount) {
                                 console.log("end of loop");
-                                that.frameNumber = 1;
+                                //if(t)
+                                /*that.frameNumber = 1;
                                 mainImage.src = that.images[1].src;
+                                */
                                 that.status = 'stopped';
                                 that.onAnimationEndedCallbacks.forEach(e => {
                                     e(that);
@@ -470,9 +472,10 @@ function createInputWithLabel(label, value, onChange) {
 
     labelDom = document.createElement("label");
     labelDom.innerHTML = label;
-    label.width = '10px';
+    label.width = '20px';
     input = document.createElement("input");
     input.classList.add(label);
+    input.style.width = '20px';
     input.value = value;
     input.onchange = onChange;
     frameRateDiv.appendChild(labelDom);
