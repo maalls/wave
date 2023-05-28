@@ -23,6 +23,7 @@ function formatParams(params) {
 let player = {
 
     loop: true,
+    autoplay: true,
     uri: '',
     frameCount: 0,
     duration: 0,
@@ -39,6 +40,10 @@ let player = {
     status: 'stopped',
 
     stepCount: 0,
+    onAnimationStartCallbacks: [],
+    onAnimationStart: function(callback) {
+        this.onAnimationStartCallbacks.push(callback);
+    },
     onAnimationEndedCallbacks: [],
     onAnimationEnded: function (callback) {
 
@@ -66,6 +71,9 @@ let player = {
         this.stepCount = false;
         console.log("play", this.uri, this.frameCount);
         this.status = 'playing';
+
+        this.onAnimationStartCallbacks.forEach(f => f(this));
+        
         this.stepCount = false;
         this.images = [];
         let loadCount = 0;
@@ -112,7 +120,7 @@ let player = {
 
                         if (that.timeWhenLastUpdate == 0 || that.timeFromLastUpdate > that.timePerFrame) {
                             console.log("animate", that.timeWhenLastUpdate, that.timeFromLastUpdate);
-                            mainImage.src = that.images[that.frameNumber - 1].src;
+                            that.showFrame();
                             that.timeWhenLastUpdate = startTime;
 
                             if (that.frameNumber == that.frameCount && !that.loop) {
@@ -150,6 +158,10 @@ let player = {
         }
 
 
+    },
+
+    showFrame: function() {
+        mainImage.src = this.images[this.frameNumber - 1].src;
     }
 
 }
@@ -190,6 +202,10 @@ function requestImage(parameters, callback) {
                 callback();
             }
             document.body.classList.remove("loading");
+
+            if(player.autoplay) {
+                player.play();
+            }
         }
     }
     // Sending our request
@@ -329,12 +345,14 @@ aj.onreadystatechange = function () {
         let resetButton = createButton("reset", function (e) {
 
             player.frameNumber = 1;
+            player.showFrame();
 
         });
         let playButton = createButton(player.status == 'playing' ? 'pause' : 'play', function (e) {
-
+            console.log("player", player);
+            
             if (player.status == 'playing') {
-
+                console.log("player playing");
                 player.status = 'paused';
                 this.innerHTML = 'resume';
 
@@ -347,6 +365,9 @@ aj.onreadystatechange = function () {
                 
             }
         });
+        player.onAnimationStart(function() {
+            playButton.innerHTML = 'pause';
+        });
 
         player.onAnimationEnded(function () {
 
@@ -358,20 +379,37 @@ aj.onreadystatechange = function () {
             if (player.status == 'stopped') {
                 player.play();
             }
+            player.status = 'paused'
             player.stepCount = 1;
+
+            playButton.innerHTML = 'resume';
         });
 
         let backStepButton = createButton('back', function (e) {
             if (player.status == 'stopped') {
                 player.play();
             }
-            player.frameNumber = Math.max(1, player.frameNumber - 2);
+            if(player.frameNumber == 1) {
+                player.frameNumber = player.frameCount - 1;
+            }
+            else if(player.frameNumber == 2) {
+                player.frameNumber = player.frameCount;
+            }
+            else {
+                player.frameNumber = Math.max(1, player.frameNumber - 2);
+            }
+            
             player.stepCount = 1;
         });
 
         let loopButton = createButton(player.loop ? 'loop on' : 'loop off', function (e) {
             player.loop = !player.loop;
             this.innerHTML = player.loop ? 'loop on' : 'loop off';
+        });
+
+        let autoplayButton = createButton(player.autoplay ? 'autoplay on' : 'autoplay off', function(e) {
+            player.autoplay = !player.autoplay;
+            this.innerHTML = player.autoplay ? 'autoplay on' : 'autoplay off';
         });
 
         function createButton(label, onclick) {

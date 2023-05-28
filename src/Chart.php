@@ -476,7 +476,7 @@ class Chart
                     $p = [$x, $y, 0];
                     $p = $this->transform($p);
 
-                    if($prevX == null) {
+                    if($prevX == null || is_a($function, Surjectif::class)) {
 
                         imagesetpixel($this->image, $p[0], $p[1], $this->color);
 
