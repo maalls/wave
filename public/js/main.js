@@ -22,6 +22,7 @@ function formatParams(params) {
 
 let player = {
 
+    loop: true,
     uri: '',
     frameCount: 0,
     duration: 0,
@@ -39,9 +40,24 @@ let player = {
 
     stepCount: 0,
     onAnimationEndedCallbacks: [],
-    onAnimationEnded: function(callback) {
+    onAnimationEnded: function (callback) {
 
         this.onAnimationEndedCallbacks.push(callback);
+
+    },
+
+    resume: function() {
+
+        
+        if(this.status == 'stopped') {
+            this.play();
+        
+        }
+        else {
+            this.status = 'playing';
+            this.stepCount = false;
+        }
+        console.log("status", this.status, this.stepCount);
 
     },
 
@@ -50,6 +66,7 @@ let player = {
         this.stepCount = false;
         console.log("play", this.uri, this.frameCount);
         this.status = 'playing';
+        this.stepCount = false;
         this.images = [];
         let loadCount = 0;
 
@@ -63,7 +80,7 @@ let player = {
 
                 if (loadCount == that.frameCount) {
 
-                    
+
                     that.timePerFrame = that.duration / that.frameCount * 1000;
 
                     console.log('ok', 'time per frame', that.timePerFrame);
@@ -71,24 +88,26 @@ let player = {
                     that.timeFromLastUpdate;
                     that.frameNumber = 1;
 
-                    let step =  function (startTime) {
+                    let step = function (startTime) {
 
                         //console.log("step status", that.status);
-                        if(that.status == 'paused') {
-                            return;
-                        }
-                        if(that.stepCount !== false) {
+                        if (that.stepCount !== false) {
                             //console.log('step', that.stepCount);
 
-                            if(that.stepCount == 0) {
+                            if (that.stepCount == 0) {
                                 requestAnimationFrame(step);
                                 return;
                             }
                             that.stepCount--;
-                                
-                            
+
+
+                        }
+                        else if (that.status == 'paused') {
+                            requestAnimationFrame(step);
+                            return;
                         }
                         
+
                         that.timeFromLastUpdate = startTime - that.timeWhenLastUpdate;
 
                         if (that.timeWhenLastUpdate == 0 || that.timeFromLastUpdate > that.timePerFrame) {
@@ -96,20 +115,23 @@ let player = {
                             mainImage.src = that.images[that.frameNumber - 1].src;
                             that.timeWhenLastUpdate = startTime;
 
-                            if (that.frameNumber >= that.frameCount) {
-                                console.log("end of loop");
-                                //if(t)
-                                /*that.frameNumber = 1;
-                                mainImage.src = that.images[1].src;
-                                */
-                                that.status = 'stopped';
-                                that.onAnimationEndedCallbacks.forEach(e => {
-                                    e(that);
-                                });
-                                //requestAnimationFrame(step);
+                            if (that.frameNumber == that.frameCount && !that.loop) {
+
+                                
+                                    console.log("end of loop");
+                                    //if(t)
+                                    /*that.frameNumber = 1;
+                                    mainImage.src = that.images[1].src;
+                                    */
+                                    that.status = 'stopped';
+                                    that.onAnimationEndedCallbacks.forEach(e => {
+                                        e(that);
+                                    });
+
+                              
 
                             } else {
-                                that.frameNumber = that.frameNumber + 1;
+                                that.frameNumber = that.frameNumber % that.frameCount + 1;
                                 requestAnimationFrame(step);
                             }
                         }
@@ -128,12 +150,7 @@ let player = {
         }
 
 
-    },
-
-    resume: function() {
-
     }
-
 
 }
 
@@ -309,45 +326,54 @@ aj.onreadystatechange = function () {
 
 
 
-        let resetButton = createButton("reset", function(e) {
+        let resetButton = createButton("reset", function (e) {
 
             player.frameNumber = 1;
 
         });
-        let playButton = createButton(player.status == 'playing' ? 'pause' : 'play', function(e) {
-            
-            if(player.status == 'playing') {
+        let playButton = createButton(player.status == 'playing' ? 'pause' : 'play', function (e) {
+
+            if (player.status == 'playing') {
 
                 player.status = 'paused';
                 this.innerHTML = 'resume';
 
             }
             else {
+                console.log("WTF", player);
                 this.innerHTML = 'pause';
-                player.play();
+                player.resume();
+                
+                
             }
         });
 
-        player.onAnimationEnded(function(){
+        player.onAnimationEnded(function () {
 
             playButton.innerHTML = 'start';
-            
+
         });
 
-        let stepButton = createButton('step', function(e) {    
-            if(player.status == 'stopped') {
+        let stepButton = createButton('step', function (e) {
+            if (player.status == 'stopped') {
                 player.play();
             }
             player.stepCount = 1;
         });
 
-        let backStepButton = createButton('back', function(e) {    
-            if(player.status == 'stopped') {
+        let backStepButton = createButton('back', function (e) {
+            if (player.status == 'stopped') {
                 player.play();
             }
             player.frameNumber = Math.max(1, player.frameNumber - 2);
             player.stepCount = 1;
         });
+
+        let loopButton = createButton(player.loop ? 'loop on' : 'loop off', function (e) {
+            player.loop = !player.loop;
+            this.innerHTML = player.loop ? 'loop on' : 'loop off';
+        });
+
         function createButton(label, onclick) {
             let button = document.createElement('button');
             button.innerHTML = label;
@@ -356,7 +382,7 @@ aj.onreadystatechange = function () {
             return button;
         }
 
-        
+
 
         selector = document.createElement("div");
 
